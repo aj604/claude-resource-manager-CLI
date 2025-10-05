@@ -18,6 +18,7 @@ Performance targets:
 - Overall search: <5ms
 """
 
+import asyncio
 from functools import lru_cache
 from typing import Any, Optional
 
@@ -316,10 +317,18 @@ class SearchEngine:
         return filtered[:limit]
 
     def search_smart(self, query: str, limit: int = 50) -> list[dict[str, Any]]:
-        """Smart search with scoring for result ranking.
+        """Smart search with weighted scoring for result ranking.
 
-        Similar to regular search but adds a 'score' field to each result
-        for ranking purposes.
+        This method combines exact, prefix, and fuzzy matching with field-based
+        scoring to rank results. Scoring strategy:
+
+        - Exact match (ID == query): score = 100
+        - ID/name match: base fuzzy score + 20 point boost
+        - Description-only match: base fuzzy score (no boost)
+        - Multi-field match: combined scores from all fields
+
+        This ensures that matches in resource IDs rank higher than matches
+        only in descriptions, and multi-field matches rank highest.
 
         Args:
             query: Search query
@@ -333,25 +342,39 @@ class SearchEngine:
 
         query_lower = query.lower()
         results_with_scores = []
+        seen = set()
 
-        # Check exact match
+        # Check exact match (score = 100)
         exact_match = self.search_exact(query)
         if exact_match:
             result = exact_match[0].copy()
             result["score"] = 100
-            return [result]
+            results_with_scores.append(result)
+            seen.add(result["id"])
 
         # Get prefix and fuzzy matches
         prefix_matches = self.search_prefix(query)
         fuzzy_matches = self.search_fuzzy(query, limit * 2)
 
         # Score prefix matches
-        seen = set()
         for resource in prefix_matches:
             if resource["id"] not in seen:
                 result = resource.copy()
-                # Higher score for prefix matches
-                result["score"] = 80
+                # Calculate base fuzzy score
+                searchable_text = self._searchable_text.get(resource["id"], "")
+                base_score = fuzz.WRatio(query_lower, searchable_text)
+
+                # Boost score if query matches ID or name (not just description)
+                id_lower = resource.get("id", "").lower()
+                name_lower = resource.get("name", "").lower()
+
+                if query_lower in id_lower or query_lower in name_lower:
+                    # ID/name match: add 20 point boost
+                    result["score"] = min(99, base_score + 20)  # Cap at 99 (below exact match)
+                else:
+                    # Description-only match: no boost
+                    result["score"] = base_score
+
                 results_with_scores.append(result)
                 seen.add(resource["id"])
 
@@ -359,10 +382,21 @@ class SearchEngine:
         for resource in fuzzy_matches:
             if resource["id"] not in seen:
                 result = resource.copy()
-                # Calculate fuzzy score
+                # Calculate base fuzzy score
                 searchable_text = self._searchable_text.get(resource["id"], "")
-                score = fuzz.WRatio(query_lower, searchable_text)
-                result["score"] = score
+                base_score = fuzz.WRatio(query_lower, searchable_text)
+
+                # Boost score if query matches ID or name (not just description)
+                id_lower = resource.get("id", "").lower()
+                name_lower = resource.get("name", "").lower()
+
+                if query_lower in id_lower or query_lower in name_lower:
+                    # ID/name match: add 20 point boost
+                    result["score"] = min(99, base_score + 20)  # Cap at 99 (below exact match)
+                else:
+                    # Description-only match: no boost
+                    result["score"] = base_score
+
                 results_with_scores.append(result)
                 seen.add(resource["id"])
 
@@ -396,3 +430,19 @@ class SearchEngine:
                 filtered.append(resource)
 
         return filtered
+
+    async def search_async(self, query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
+        """Async version of search for concurrent operations.
+
+        Args:
+            query: Search query
+            limit: Maximum results to return
+            filters: Optional filters (e.g., {"type": "agent"})
+
+        Returns:
+            List of matching resources, ranked by relevance
+        """
+        # Run sync search in executor to avoid blocking
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, self._search_impl, query, limit, filters)
+        return result

@@ -139,3 +139,21 @@ When executing commands in this repository:
 5. ✅ Run tests after changes to verify nothing broke
 
 Remember: This is a **Python project with a virtualenv**. The system Python lacks the dependencies!
+
+## Parallel Subagent Workflow (Phase 2+)
+
+**IMPORTANT**: For multi-component features, read `LESSONS_LEARNED_PHASE2.md` first!
+
+### Efficient Agent Launch Pattern:
+1. **Map dependencies** - Identify parallel vs sequential work
+2. **Test-generators** (parallel) - Write behavior-focused tests, not implementation-prescriptive
+3. **Implementation waves** - Core features → Integration → Polish
+4. **Reviews at 70%** - Launch security/UX/docs when architecture clear, not at 100%
+
+### Key Lessons:
+- Test **behaviors** not implementation details (allows better UX without test rewrites)
+- Visual state feedback is **P0** not polish (checkboxes, progress indicators)
+- Documentation agent can run at 70% implementation (saves time)
+- Agent handoffs need structured output (summary + next steps)
+
+**See**: `LESSONS_LEARNED_PHASE2.md` for full details and time-saving patterns.

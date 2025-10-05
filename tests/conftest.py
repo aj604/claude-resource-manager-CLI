@@ -148,12 +148,17 @@ def temp_catalog_dir(tmp_path: Path) -> Path:
 @pytest.fixture
 def mock_httpx_client() -> AsyncMock:
     """Mock httpx AsyncClient for testing downloads."""
+    # Create response mock with proper attributes
+    response = Mock()
+    response.status_code = 200
+    response.content = b"# Test Resource\nMock content"
+    response.raise_for_status = Mock()
+
+    # Create client mock that works with async context manager
     client = AsyncMock()
-    client.get = AsyncMock(return_value=AsyncMock(
-        status_code=200,
-        content=b"# Test Resource\nMock content",
-        raise_for_status=Mock(),
-    ))
+    client.get = AsyncMock(return_value=response)
+    client.__aenter__ = AsyncMock(return_value=client)
+    client.__aexit__ = AsyncMock(return_value=None)
     return client
 
 

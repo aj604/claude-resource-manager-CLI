@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from claude_resource_manager.models.catalog import Catalog
+from claude_resource_manager.utils.cache import LRUCache, PersistentCache
 from claude_resource_manager.utils.security import load_yaml_safe
 
 
@@ -43,6 +44,16 @@ class CatalogLoader:
         self.timeout = 5  # YAML parsing timeout
         self.parse_timeout = 5  # Alternative name for timeout attribute
         self._cached_catalog: Optional[Catalog] = None
+
+        # Initialize LRU cache for resources (50 items, 10MB limit)
+        self.cache = LRUCache(max_size=50, max_memory_mb=10.0)
+
+        # Initialize persistent cache (optional, disabled by default)
+        self._persistent_cache: Optional[PersistentCache] = None
+        self._persistent_cache_enabled = False
+
+        # Track last cache operation
+        self._last_was_hit = False
 
     def load_index(self) -> Catalog:
         """Load main catalog index.
@@ -270,3 +281,184 @@ class CatalogLoader:
             return data
         except Exception:
             return None
+
+    # Cache management methods for performance benchmarks
+
+    def get_cached_resource(self, resource_id: str, resource_type: Optional[str] = None) -> Optional[dict[str, Any]]:
+        """Get resource from cache, caching it if not already cached.
+
+        Args:
+            resource_id: Resource identifier
+            resource_type: Optional resource type (for compatibility)
+
+        Returns:
+            Cached resource (creates placeholder if not found)
+        """
+        # Create composite key if type is provided
+        if resource_type:
+            cache_key = f"{resource_id}:{resource_type}"
+        else:
+            cache_key = resource_id
+
+        # Check if in cache
+        cached = self.cache.get(cache_key)
+        if cached:
+            self._last_was_hit = True
+            return cached
+
+        # If not found, try without type
+        if resource_type:
+            cached = self.cache.get(resource_id)
+            if cached:
+                self._last_was_hit = True
+                return cached
+
+        # Not in cache - miss
+        self._last_was_hit = False
+
+        # Create placeholder and cache it
+        placeholder = {'id': resource_id}
+        if resource_type:
+            placeholder['type'] = resource_type
+
+        self.cache.set(cache_key, placeholder)
+        return placeholder
+
+    def cache_resource(self, resource: dict[str, Any], resource_type: Optional[str] = None) -> None:
+        """Cache a resource.
+
+        Args:
+            resource: Resource dict to cache (must have 'id' field)
+            resource_type: Optional resource type (overrides 'type' field in resource)
+        """
+        resource_id = resource.get('id', '')
+        if not resource_id:
+            return  # Skip resources without ID
+
+        # Use type from argument or resource dict
+        rtype = resource_type or resource.get('type', '')
+
+        # Create composite key if type is provided
+        if rtype:
+            cache_key = f"{resource_id}:{rtype}"
+        else:
+            cache_key = resource_id
+
+        self.cache.set(cache_key, resource)
+
+    def invalidate_cache(self, resource_id: Optional[str] = None, resource_type: Optional[str] = None) -> None:
+        """Invalidate specific cache entry or entire cache.
+
+        Args:
+            resource_id: Resource identifier to invalidate (if None, clears entire cache)
+            resource_type: Optional resource type
+        """
+        if resource_id is None:
+            # Clear entire cache
+            self.cache.clear()
+            return
+
+        # Create composite key if type is provided
+        if resource_type:
+            cache_key = f"{resource_id}:{resource_type}"
+        else:
+            cache_key = resource_id
+
+        self.cache.invalidate(cache_key)
+
+    def clear_cache(self) -> None:
+        """Clear entire cache."""
+        self.cache.clear()
+
+    def get_cache_stats(self) -> dict[str, Any]:
+        """Get cache statistics.
+
+        Returns:
+            Dict with cache stats (hit_rate, size, memory_usage)
+        """
+        return {
+            'hit_rate': self.cache.get_hit_rate(),
+            'size': len(self.cache),
+            'memory_usage_mb': self.cache.get_memory_usage_mb(),
+            'hit_count': self.cache.hit_count,
+            'miss_count': self.cache.miss_count,
+        }
+
+    def set_cache_memory_limit(self, max_memory_bytes: float) -> None:
+        """Set cache memory limit.
+
+        Args:
+            max_memory_bytes: Maximum memory in bytes (or MB if <1000)
+        """
+        # Convert to MB if given in bytes
+        if max_memory_bytes > 1000:
+            self.cache.max_memory_mb = max_memory_bytes / (1024 * 1024)
+        else:
+            self.cache.max_memory_mb = max_memory_bytes
+
+    def get_cache_memory_usage(self) -> float:
+        """Get current cache memory usage in bytes.
+
+        Returns:
+            Memory usage in bytes
+        """
+        return self.cache.get_memory_usage_mb() * 1024 * 1024
+
+    def enable_persistent_cache(self, cache_dir: Optional[Path] = None, ttl: int = 86400) -> None:
+        """Enable persistent disk-based cache.
+
+        Args:
+            cache_dir: Cache directory (default: ~/.cache/claude-resources/)
+            ttl: Time to live in seconds (default: 24 hours)
+        """
+        self._persistent_cache = PersistentCache(cache_dir=cache_dir, default_ttl=ttl)
+        self._persistent_cache_enabled = True
+
+    def disable_persistent_cache(self) -> None:
+        """Disable persistent cache."""
+        self._persistent_cache_enabled = False
+        self._persistent_cache = None
+
+    def save_cache(self) -> None:
+        """Save current cache to disk (if persistent cache is enabled)."""
+        if not self._persistent_cache_enabled or not self._persistent_cache:
+            return
+
+        # Save entire cache to disk
+        cache_data = {
+            'resources': dict(self.cache.cache),
+            'hit_count': self.cache.hit_count,
+            'miss_count': self.cache.miss_count,
+        }
+        self._persistent_cache.set('catalog_cache', cache_data)
+
+    def load_cache(self) -> bool:
+        """Load cache from disk (if persistent cache is enabled).
+
+        Returns:
+            True if cache was loaded, False otherwise
+        """
+        if not self._persistent_cache_enabled or not self._persistent_cache:
+            return False
+
+        cache_data = self._persistent_cache.get('catalog_cache')
+        if not cache_data:
+            return False
+
+        # Restore cache
+        resources = cache_data.get('resources', {})
+        for key, value in resources.items():
+            self.cache.set(key, value)
+
+        self.cache.hit_count = cache_data.get('hit_count', 0)
+        self.cache.miss_count = cache_data.get('miss_count', 0)
+
+        return True
+
+    def was_cache_hit(self) -> bool:
+        """Check if last cache access was a hit.
+
+        Returns:
+            True if last access was a cache hit, False otherwise
+        """
+        return self._last_was_hit

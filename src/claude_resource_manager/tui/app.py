@@ -3,9 +3,11 @@ TUI Application Entry Point
 
 This module provides the main entry point for the TUI (Text User Interface).
 It initializes the Textual app, loads the catalog, and manages screen navigation.
+Includes theme management and color scheme detection for accessibility.
 """
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Optional
@@ -197,6 +199,10 @@ class ResourceManagerApp(App):
         self.category = category
         self.verbose = verbose
 
+        # Theme management - detect color scheme
+        self.theme_manager = ThemeManager()
+        self.theme = self.theme_manager.detect_color_scheme()
+
     def compose(self) -> ComposeResult:
         """Compose the application UI.
 
@@ -226,16 +232,13 @@ class ResourceManagerApp(App):
     def action_help(self) -> None:
         """Show help message.
 
-        Displays keyboard shortcuts and usage information.
+        Displays keyboard shortcuts and usage information via HelpScreen.
         """
-        # In a full implementation, this would push a HelpScreen
-        # For now, we'll just show a notification
-        self.notify(
-            "Keyboard Shortcuts:\n"
-            "↑↓: Navigate | /: Search | Space: Select | Enter: Details | q: Quit",
-            title="Help",
-            timeout=5,
-        )
+        from claude_resource_manager.tui.screens.help_screen import HelpScreen
+
+        # Push help screen with app context
+        help_screen = HelpScreen(context="app")
+        self.push_screen(help_screen)
 
     def action_quit(self) -> None:
         """Exit the application.
@@ -354,3 +357,91 @@ def launch_tui(
         if verbose:
             console.print_exception()
         sys.exit(1)
+
+
+class ThemeManager:
+    """Manages theme and color scheme detection for the TUI.
+
+    Automatically detects the terminal's color scheme (light vs dark)
+    and provides appropriate theme settings for accessibility.
+
+    Features:
+    - Environment variable detection (COLORFGBG)
+    - Default to dark mode if detection fails
+    - Supports manual theme override
+    """
+
+    def __init__(self):
+        """Initialize the theme manager."""
+        self._detected_scheme: Optional[str] = None
+
+    def detect_color_scheme(self) -> str:
+        """Auto-detect terminal color scheme (light/dark).
+
+        Uses the COLORFGBG environment variable to detect the terminal's
+        background color. Falls back to dark mode if detection fails.
+
+        Returns:
+            "dark" or "light" based on detected terminal scheme
+
+        Note:
+            COLORFGBG format is "foreground;background" where values 0-7
+            are dark colors and 8-15 are light colors.
+        """
+        try:
+            # Check COLORFGBG environment variable
+            colorfgbg = os.environ.get("COLORFGBG", "")
+
+            if colorfgbg:
+                # Parse format: "15;0" (fg;bg)
+                parts = colorfgbg.split(";")
+                if len(parts) >= 2:
+                    bg_color = int(parts[-1])
+                    # Background colors 0-7 are dark, 8-15 are light
+                    is_dark = bg_color < 8
+                    self._detected_scheme = "dark" if is_dark else "light"
+                    return self._detected_scheme
+
+            # Check TERM_PROGRAM for some terminals
+            term_program = os.environ.get("TERM_PROGRAM", "")
+            if "iterm" in term_program.lower():
+                # iTerm2 specific detection could go here
+                pass
+
+        except (ValueError, IndexError):
+            # Failed to parse - fall through to default
+            pass
+
+        # Default to dark mode (most terminals)
+        self._detected_scheme = "dark"
+        return "dark"
+
+    def get_theme_colors(self, scheme: str) -> dict:
+        """Get color palette for the specified scheme.
+
+        Args:
+            scheme: "dark" or "light"
+
+        Returns:
+            Dictionary of theme colors for WCAG 2.1 AA compliance
+        """
+        if scheme == "light":
+            return {
+                "background": "#ffffff",
+                "foreground": "#000000",
+                "primary": "#0066cc",
+                "accent": "#6600cc",
+                "error": "#cc0000",
+                "warning": "#cc6600",
+                "success": "#008800",
+            }
+        else:  # dark
+            return {
+                "background": "#1e1e1e",
+                "foreground": "#e0e0e0",
+                "primary": "#66b3ff",
+                "accent": "#bb66ff",
+                "error": "#ff6666",
+                "warning": "#ffaa66",
+                "success": "#66ff66",
+            }
