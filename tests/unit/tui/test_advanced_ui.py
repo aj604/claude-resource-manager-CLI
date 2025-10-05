@@ -341,11 +341,9 @@ class TestSortingFeatures:
 
         IMPLEMENTATION: Uses cycling sort with 's' key.
         """
-        # Create mock with resources
-        loader = Mock()
-        async def mock_load_resources():
-            return sample_resources
-        loader.load_resources = mock_load_resources
+        # Create mock with resources using AsyncMock for proper async behavior
+        loader = AsyncMock()
+        loader.load_resources.return_value = sample_resources
 
         app = AdvancedUITestApp(catalog_loader=loader)
 
@@ -353,6 +351,22 @@ class TestSortingFeatures:
             await pilot.pause()
 
             browser = app.screen
+
+            # Verify the mock was called
+            loader.load_resources.assert_called_once()
+
+            # Ensure resources were loaded properly
+            assert browser.filtered_resources, "Resources should be loaded"
+            assert len(browser.filtered_resources) == 4, f"Should have 4 resources, got {len(browser.filtered_resources)}"
+
+            # Verify the resources are the ones we provided
+            resource_names = {r.get("name") for r in browser.filtered_resources}
+            expected_names = {"Zebra Agent", "Alpha Agent", "Beta MCP", "Gamma Hook"}
+            assert resource_names == expected_names, f"Unexpected resources: {resource_names}"
+
+            # Reset sort state to avoid toggle behavior from loaded preferences
+            # (Test isolation issue - see docs/feature_requests/FEATURE_REQUEST_TEST_ISOLATION.md)
+            browser._sort_field = None
 
             # Directly call sort_by to test sorting behavior
             # This avoids the call_later() complexity in action_open_sort_menu
@@ -363,7 +377,7 @@ class TestSortingFeatures:
 
             # Check that filtered_resources are actually sorted by name (ascending)
             names = [r.get("name", r.get("id", "")).lower() for r in browser.filtered_resources]
-            assert names == sorted(names), "Resources not sorted alphabetically"
+            assert names == sorted(names), f"Resources not sorted alphabetically: {names} != {sorted(names)}"
             assert getattr(browser, '_sort_reverse', False) == False, "Should be ascending by default"
 
     @pytest.mark.asyncio

@@ -200,7 +200,8 @@ class BrowserScreen(Screen):
             # Load resources from catalog
             if self.catalog_loader:
                 self.resources = await self.catalog_loader.load_resources()
-                self.filtered_resources = self.resources.copy()
+                # Ensure we create a new list, not just a reference
+                self.filtered_resources = list(self.resources)
                 await self.populate_resource_list()
         except Exception as e:
             # Show error message
@@ -471,7 +472,7 @@ class BrowserScreen(Screen):
 
         # Filter resources
         if self.current_filter == "all":
-            self.filtered_resources = self.resources.copy()
+            self.filtered_resources = list(self.resources)
         else:
             self.filtered_resources = [
                 r for r in self.resources
@@ -716,6 +717,10 @@ class BrowserScreen(Screen):
         Sorts the filtered_resources list and refreshes the table.
         Preserves selections during sort.
         """
+        # Ensure filtered_resources is initialized
+        if not hasattr(self, 'filtered_resources') or self.filtered_resources is None:
+            self.filtered_resources = []
+
         # Valid sort fields
         valid_fields = ["name", "type", "updated", "version"]
         if field not in valid_fields:
