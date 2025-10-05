@@ -125,6 +125,58 @@ safety check
 
 MIT
 
+## EPCC Workflow
+
+This project follows the **Explore-Plan-Code-Commit (EPCC)** workflow for systematic development:
+
+### Quick Start
+
+1. **🔍 EXPLORE** - Understand the codebase first
+   ```bash
+   /epcc-explore "authentication system" --deep
+   ```
+   Output: `EPCC_EXPLORE.md`
+
+2. **📋 PLAN** - Design your approach
+   ```bash
+   /epcc-plan "JWT authentication implementation"
+   ```
+   Output: `EPCC_PLAN.md`
+
+3. **💻 CODE** - Implement with TDD
+   ```bash
+   /epcc-code --tdd "implement user registration"
+   ```
+   Output: `EPCC_CODE.md`
+
+4. **✅ COMMIT** - Finalize and version
+   ```bash
+   /epcc-commit "feat: Add JWT authentication"
+   ```
+   Output: `EPCC_COMMIT.md`
+
+### EPCC Features
+
+- **Git Pre-Commit Hook** - Validates conventional commits and optionally enforces EPCC workflow
+- **GitHub Actions** - CI/CD validation of EPCC documentation and code quality
+- **Documentation Templates** - See `docs/epcc/` for templates
+
+### Configuration
+
+Enable strict EPCC enforcement:
+```bash
+# Require exploration and planning before commits
+export ENFORCE_EPCC=1
+
+# Run tests before commits
+export RUN_TESTS=1
+
+# Bypass EPCC validation (use sparingly)
+export EPCC_BYPASS=1
+```
+
+See [docs/epcc/](docs/epcc/) for detailed workflow documentation and templates.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.

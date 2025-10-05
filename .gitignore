@@ -109,3 +109,5 @@ build/
 
 # Virtual environment (explicit)
 .venv/
+# EPCC workflow state files (generated, not versioned)
+.epcc/
