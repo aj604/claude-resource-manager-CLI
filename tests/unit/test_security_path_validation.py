@@ -6,7 +6,7 @@ All paths must stay within ~/.claude/ directory.
 
 from pathlib import Path
 import pytest
-from claude_resource_manager.utils.security import SecurityError
+from claude_resource_manager.utils.security import SecurityError, validate_install_path
 
 
 class TestPathSecurityControls:
@@ -20,7 +20,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: All attempts are blocked
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         for malicious_path in path_traversal_attempts:
             with pytest.raises((ValueError, SecurityError)) as exc_info:
@@ -40,7 +39,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Path is rejected
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         malicious_paths = [
             "/etc/passwd",
@@ -62,7 +60,6 @@ class TestPathSecurityControls:
         THEN: Symlink escape is detected and blocked
         """
         import os
-        from claude_resource_manager.utils.security import validate_install_path
 
         if os.name != "nt":  # Unix systems
             # Create symlink pointing outside
@@ -88,7 +85,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Path is allowed
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         valid_paths = [
             "agents/architect.md",
@@ -109,7 +105,6 @@ class TestPathSecurityControls:
         WHEN: Path is normalized
         THEN: Resolved path is safe and within base
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         paths_to_normalize = [
             "agents/./architect.md",  # Redundant .
@@ -130,7 +125,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Path is rejected
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         malicious_paths = [
             "../../etc/passwd",
@@ -150,7 +144,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Path is rejected (null byte injection attack)
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         malicious_paths = [
             "agents/test\x00.md",
@@ -170,7 +163,6 @@ class TestPathSecurityControls:
         THEN: Path is correctly handled or rejected
         """
         import os
-        from claude_resource_manager.utils.security import validate_install_path
 
         if os.name != "nt":  # Unix system
             windows_paths = [
@@ -191,7 +183,6 @@ class TestPathSecurityControls:
         WHEN: Path is resolved
         THEN: Resolved to absolute path within base
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         relative_path = "agents/architect.md"
 
@@ -208,7 +199,6 @@ class TestPathSecurityControls:
         WHEN: File is within base directory
         THEN: Path is allowed
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         hidden_paths = [
             ".clauderc",
@@ -228,7 +218,6 @@ class TestPathSecurityControls:
         THEN: Case variations are handled correctly
         """
         import os
-        from claude_resource_manager.utils.security import validate_install_path
 
         # On case-insensitive systems, these could be problematic
         case_paths = [
@@ -248,7 +237,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Path is handled or rejected gracefully
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         # Create very long path
         long_path = "agents/" + ("a" * 10000) + ".md"
@@ -269,7 +257,6 @@ class TestPathSecurityControls:
         THEN: Device files are rejected
         """
         import os
-        from claude_resource_manager.utils.security import validate_install_path
 
         if os.name != "nt":  # Unix systems
             device_files = [
@@ -290,7 +277,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Normalization attacks are prevented
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         # Unicode characters that normalize to .. (path traversal)
         unicode_paths = [
@@ -310,7 +296,6 @@ class TestPathSecurityControls:
         WHEN: Path validation is performed
         THEN: Double-encoding bypass is prevented
         """
-        from claude_resource_manager.utils.security import validate_install_path
 
         encoded_paths = [
             "agents/%252e%252e/secret.txt",  # Double URL encoded ../
