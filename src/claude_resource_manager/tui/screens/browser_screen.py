@@ -722,15 +722,17 @@ class BrowserScreen(Screen):
             field = "name"
 
         # Get or initialize sort state
-        current_sort_field = getattr(self, '_sort_field', 'name')
+        current_sort_field = getattr(self, '_sort_field', None)
         current_sort_reverse = getattr(self, '_sort_reverse', False)
 
-        # Toggle sort direction if same field
+        # Toggle sort direction if same field, otherwise reset to ascending
         if current_sort_field == field:
             self._sort_reverse = not current_sort_reverse
         else:
-            self._sort_field = field
             self._sort_reverse = False
+
+        # Always set the field
+        self._sort_field = field
 
         # Sort the filtered resources
         try:

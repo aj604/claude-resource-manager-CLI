@@ -6,6 +6,7 @@ All paths must stay within ~/.claude/ directory.
 
 from pathlib import Path
 import pytest
+from claude_resource_manager.utils.security import SecurityError
 
 
 class TestPathSecurityControls:
