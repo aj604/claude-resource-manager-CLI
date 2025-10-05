@@ -117,8 +117,20 @@ source .venv/bin/activate && pytest
 
 ## Git Workflow
 
-- **Branch naming**: `feature/description` or `fix/description`
-- **Commit messages**: Conventional commits format
+**⚠️ CRITICAL: Never commit directly to main!**
+- **All work must be on feature branches** - Use `{user}/{feature-description}` format
+- **All changes must go through PR** - Never push directly to main, always create a pull request
+- **Branch protection**: Main branch requires PR review before merge
+
+### Workflow Steps:
+1. Create feature branch from main: `git checkout -b {user}/{feature-name}`
+2. Make changes and commit to feature branch
+3. Push feature branch: `git push -u origin {user}/{feature-name}`
+4. Create PR using `gh pr create`
+5. Wait for review/approval before merging
+
+### Standards:
+- **Commit messages**: Conventional commits format (feat:, fix:, chore:, etc.)
 - **Pre-commit**: Run tests before committing (`pytest`)
 - **No secrets**: Never commit `.env`, credentials, API keys
 
