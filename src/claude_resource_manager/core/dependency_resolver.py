@@ -9,11 +9,11 @@ Key features:
 - Required vs recommended dependency handling
 - Maximum depth limiting to prevent excessive recursion
 - Comprehensive error handling for missing dependencies
+
+Note: NetworkX is imported lazily within methods to optimize startup time.
 """
 
 from typing import Any, Optional
-
-import networkx as nx
 
 from claude_resource_manager.models.catalog import Catalog
 from claude_resource_manager.models.resource import Dependency, Resource
@@ -155,6 +155,9 @@ class DependencyResolver:
             >>> # ordered[0] has no dependencies
             >>> # ordered[-1] might depend on all others
         """
+        # Lazy import NetworkX to optimize startup time
+        import networkx as nx
+
         # Build directed graph
         graph = nx.DiGraph()
 
@@ -217,6 +220,9 @@ class DependencyResolver:
             >>> if cycles:
             ...     print(f"Cycle detected: {' -> '.join(cycles)}")
         """
+        # Lazy import NetworkX to optimize startup time
+        import networkx as nx
+
         # Build directed graph
         graph = nx.DiGraph()
 

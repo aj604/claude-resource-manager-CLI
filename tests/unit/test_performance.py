@@ -85,6 +85,18 @@ class TestStartupPerformance:
 
         FAILS: Lazy import mechanism not implemented.
         """
+        # Clear heavy dependencies from sys.modules to test lazy loading
+        # (they may have been loaded by previous tests)
+        modules_to_clear = [
+            'networkx', 'textual.widgets',
+            'claude_resource_manager.core',
+            'claude_resource_manager.models',
+            'claude_resource_manager.utils'
+        ]
+        for module in list(sys.modules.keys()):
+            if any(module.startswith(prefix) for prefix in modules_to_clear):
+                del sys.modules[module]
+
         def import_core_modules():
             # Should only import lightweight modules
             from claude_resource_manager import core
