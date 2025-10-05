@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/<your-username>/Repos/claude/claude_resource_manager/**)",
+      "Read(//Users/<your-username>/Repos/claude/claude_resource_manager/.claude/**)",
+      "Read(//Users/<your-username>/Repos/claude/claude_resource_manager/scripts/**)",
+      "Read(//Users/<your-username>/Repos/claude/claude_resource_manager/registry/**)",
+      "Read(//Users/<your-username>/.claude/**)",
+      "Bash(echo $HOME)",
+      "Bash(echo $claude_resource_manager_PATH)",
+      "Bash(test:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//tmp/**)",
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/aws-samples/anthropic-on-aws/main/advanced-claude-code-patterns/agents/business-analyst.md\" -o /tmp/business-analyst.md)",
+      "Bash(curl:*)",
+      "Read(//Users/<your-username>/Repos/claude/**)",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(touch:*)",
+      "Bash(source:*)",
+      "Bash(python:*)",
+      "Bash(pytest:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
