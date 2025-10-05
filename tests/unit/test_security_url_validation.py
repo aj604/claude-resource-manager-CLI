@@ -7,7 +7,7 @@ All URLs must be HTTPS from trusted domains only.
 import pytest
 from urllib.parse import urlparse
 
-from claude_resource_manager.utils.security import SecurityError
+from claude_resource_manager.utils.security import SecurityError, validate_download_url
 
 
 class TestURLSecurityControls:
@@ -21,7 +21,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: URLs are allowed
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         for url in safe_github_urls:
             result = validate_download_url(url)
@@ -36,7 +35,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: URLs are rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         http_urls = [
             "http://raw.githubusercontent.com/org/repo/main/file.md",
@@ -55,7 +53,6 @@ class TestURLSecurityControls:
         WHEN: Domain validation is performed
         THEN: GitHub domain is allowed
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         github_urls = [
             "https://raw.githubusercontent.com/user/repo/main/file.md",
@@ -72,7 +69,6 @@ class TestURLSecurityControls:
         WHEN: Domain validation is performed
         THEN: URL is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         untrusted_urls = [
             "https://evil.com/malware.sh",
@@ -96,7 +92,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Localhost URLs are rejected (SSRF prevention)
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         localhost_urls = [
             "https://localhost:8000/resource.yaml",
@@ -115,7 +110,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: IP address URLs are rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         ip_urls = [
             "https://192.168.1.1/resource.yaml",
@@ -134,7 +128,6 @@ class TestURLSecurityControls:
         WHEN: Redirect is followed
         THEN: Unsafe redirect is blocked
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         # This test verifies redirect validation exists
         # Actual redirect handling happens in downloader
@@ -155,7 +148,6 @@ class TestURLSecurityControls:
         WHEN: URL is parsed and validated
         THEN: Injection is prevented
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         injection_urls = [
             "https://raw.githubusercontent.com/org/repo@attacker.com/file.md",
@@ -173,7 +165,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: File scheme is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         file_urls = [
             "file:///etc/passwd",
@@ -191,7 +182,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: FTP scheme is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         ftp_urls = [
             "ftp://ftp.example.com/resource.yaml",
@@ -208,7 +198,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: JavaScript scheme is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         js_urls = [
             "javascript:alert('XSS')",
@@ -225,7 +214,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Data scheme is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         data_urls = [
             "data:text/html,<script>alert('XSS')</script>",
@@ -242,7 +230,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Malformed URLs are rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         malformed_urls = [
             "not-a-url",
@@ -261,7 +248,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Non-standard ports are rejected (except 443)
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         port_urls = [
             "https://raw.githubusercontent.com:8080/file.md",
@@ -278,7 +264,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: URLs with credentials are rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         credential_urls = [
             "https://user:pass@raw.githubusercontent.com/file.md",
@@ -295,7 +280,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Unicode domains are normalized or rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         # Punycode/IDN domains that look like github
         unicode_urls = [
@@ -313,7 +297,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: URL is rejected
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         long_url = "https://raw.githubusercontent.com/" + "a" * 10000 + "/file.md"
 
@@ -326,7 +309,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Query params are validated or stripped
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         # GitHub raw URLs shouldn't have query params
         param_url = "https://raw.githubusercontent.com/org/repo/main/file.md?token=abc123"
@@ -344,7 +326,6 @@ class TestURLSecurityControls:
         WHEN: URL validation is performed
         THEN: Fragment is stripped
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         fragment_url = "https://raw.githubusercontent.com/org/repo/main/file.md#section"
 
@@ -359,7 +340,6 @@ class TestURLSecurityControls:
         WHEN: URL normalization is performed
         THEN: URLs are normalized consistently
         """
-        from claude_resource_manager.utils.security import validate_download_url
 
         url_variants = [
             "https://RAW.GITHUBUSERCONTENT.COM/org/repo/main/file.md",  # Uppercase

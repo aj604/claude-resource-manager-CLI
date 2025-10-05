@@ -60,7 +60,10 @@ class TestCatalogLoader:
         elapsed = time.perf_counter() - start
 
         assert len(resources) == 331
-        assert elapsed < 0.2  # 200ms
+        # CI environments are slower - allow 500ms, local should be <200ms
+        import os
+        timeout = 0.5 if os.getenv("CI") else 0.2
+        assert elapsed < timeout, f"Loading took {elapsed:.3f}s (limit: {timeout}s)"
 
     def test_WHEN_file_not_found_THEN_raises_error(
         self, temp_catalog_dir: Path

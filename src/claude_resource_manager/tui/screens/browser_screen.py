@@ -7,10 +7,16 @@ This module implements the main resource browsing interface with:
 - Preview pane showing resource details
 - Multi-select support for batch operations
 - Keyboard navigation and shortcuts
+- Sorting by name, type, and date
+- Responsive layout with breakpoints
+- Help screen integration
 """
 
+import json
+from pathlib import Path
 from typing import Any, Optional
 
+from textual import events
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
@@ -57,8 +63,16 @@ class BrowserScreen(Screen):
         Binding("escape", "clear_search", "Clear Search", show=False),
         Binding("space", "toggle_select", "Toggle Select", show=True),
         Binding("tab", "focus_next", "Next Field", show=False),
+        Binding("s", "open_sort_menu", "Sort", show=True),
+        Binding("p", "toggle_preview", "Toggle Preview", show=True),
+        Binding("question_mark", "show_help", "Help", show=True),
         Binding("q", "quit", "Quit", show=True),
     ]
+
+    # Responsive layout breakpoints
+    NARROW_WIDTH = 80  # Hide preview pane below this width
+    MIN_WIDTH = 40     # Minimum terminal width
+    MIN_HEIGHT = 10    # Minimum terminal height
 
     def __init__(
         self,
@@ -73,6 +87,9 @@ class BrowserScreen(Screen):
             search_engine: Service for searching and filtering resources
             **kwargs: Additional arguments passed to Screen
         """
+        # Set the screen name before calling super().__init__
+        if 'name' not in kwargs:
+            kwargs['name'] = 'browser'
         super().__init__(**kwargs)
         self.catalog_loader = catalog_loader
         self.search_engine = search_engine
@@ -82,6 +99,18 @@ class BrowserScreen(Screen):
         self.selected_resource: Optional[dict[str, Any]] = None
         self.current_filter: str = "all"
 
+        # Sorting state
+        self.current_sort: str = "name"  # Current sort field (name, type, updated)
+        self._sort_ascending: bool = True  # Sort direction
+
+        # Responsive state
+        self._preview_visible: bool = True  # Preview pane visibility
+        self._terminal_width: int = 100  # Current terminal width
+        self._terminal_height: int = 30  # Current terminal height
+
+        # Load saved preferences
+        self._load_preferences()
+
     def compose(self) -> ComposeResult:
         """Compose the browser screen UI.
 
@@ -89,6 +118,14 @@ class BrowserScreen(Screen):
             Widget components for the browser screen
         """
         yield Header()
+
+        # Size warning for terminals that are too small
+        yield Static(
+            f"⚠️ Terminal too small! Minimum size: {self.MIN_WIDTH}x{self.MIN_HEIGHT}\n"
+            "Please resize your terminal window.",
+            id="size-warning",
+            classes="hidden error-message"
+        )
 
         # Search input
         yield Input(
@@ -144,9 +181,9 @@ class BrowserScreen(Screen):
         4. Hides loading indicator
         5. Handles any errors during loading
         """
-        # Setup the DataTable columns
+        # Setup the DataTable columns (checkbox column first for multi-select)
         table = self.query_one(DataTable)
-        table.add_columns("Name", "Type", "Description", "Version")
+        table.add_columns("", "Name", "Type", "Description", "Version")
         table.cursor_type = "row"
 
         # Show loading indicator
@@ -163,7 +200,8 @@ class BrowserScreen(Screen):
             # Load resources from catalog
             if self.catalog_loader:
                 self.resources = await self.catalog_loader.load_resources()
-                self.filtered_resources = self.resources.copy()
+                # Ensure we create a new list, not just a reference
+                self.filtered_resources = list(self.resources)
                 await self.populate_resource_list()
         except Exception as e:
             # Show error message
@@ -176,6 +214,30 @@ class BrowserScreen(Screen):
 
             # Update status bar
             await self.update_status_bar()
+
+            # Set initial scrollbar state based on terminal size
+            try:
+                terminal_height = self.app.size.height if self.app else 30
+                if terminal_height < 20:
+                    table.show_vertical_scrollbar = True
+            except Exception:
+                # Ignore if size not available
+                pass
+
+            # Set initial preview pane display state
+            try:
+                preview = self.query_one("#preview-pane", Static)
+                if self._preview_visible:
+                    preview.styles.display = "block"
+                else:
+                    preview.styles.display = "none"
+            except Exception:
+                # Ignore if preview not available
+                pass
+
+            # Set focus on table instead of search input
+            # This allows keyboard shortcuts like "?" to work immediately
+            table.focus()
 
     async def populate_resource_list(self) -> None:
         """Populate the DataTable with current filtered resources.
@@ -205,6 +267,10 @@ class BrowserScreen(Screen):
             # Add rows to table
             for resource in self.filtered_resources:
                 try:
+                    # Determine checkbox state
+                    resource_id = resource.get("id", resource.get("name"))
+                    checkbox = "[x]" if resource_id in self.selected_resources else "[ ]"
+
                     name = resource.get("name", resource.get("id", "Unknown"))
                     res_type = resource.get("type", "unknown")
                     description = resource.get("description", resource.get("summary", ""))
@@ -215,7 +281,7 @@ class BrowserScreen(Screen):
                     if score is not None:
                         description = f"{description} (Score: {score})"
 
-                    table.add_row(name, res_type, description, version)
+                    table.add_row(checkbox, name, res_type, description, version)
                 except Exception:
                     # Skip malformed resources
                     continue
@@ -304,8 +370,17 @@ class BrowserScreen(Screen):
 
                 if resource_id in self.selected_resources:
                     self.selected_resources.discard(resource_id)
+                    new_checkbox = "[ ]"
                 else:
+                    # Check selection limit before adding
+                    if not self._check_selection_limit():
+                        return
                     self.selected_resources.add(resource_id)
+                    new_checkbox = "[x]"
+
+                # Update checkbox cell in the table (first column, index 0)
+                row_key = table.get_row_at(current_row)
+                table.update_cell_at((current_row, 0), new_checkbox)
 
                 # Update status bar
                 await self.update_status_bar()
@@ -397,7 +472,7 @@ class BrowserScreen(Screen):
 
         # Filter resources
         if self.current_filter == "all":
-            self.filtered_resources = self.resources.copy()
+            self.filtered_resources = list(self.resources)
         else:
             self.filtered_resources = [
                 r for r in self.resources
@@ -563,3 +638,321 @@ class BrowserScreen(Screen):
         Updates the preview pane when a new row is highlighted.
         """
         await self.on_resource_selected(event.cursor_row)
+
+    @property
+    def max_selections(self) -> Optional[int]:
+        """Get the maximum number of selections allowed.
+
+        Returns:
+            Maximum selections limit (None = unlimited)
+        """
+        return getattr(self, '_max_selections', None)
+
+    @max_selections.setter
+    def max_selections(self, value: Optional[int]) -> None:
+        """Set the maximum number of selections allowed.
+
+        Args:
+            value: Maximum selections limit (None = unlimited)
+        """
+        self._max_selections = value
+
+    def _check_selection_limit(self) -> bool:
+        """Check if selection limit has been reached.
+
+        Returns:
+            True if selection can proceed, False if limit reached
+        """
+        max_sel = getattr(self, '_max_selections', None)
+        if max_sel is not None and len(self.selected_resources) >= max_sel:
+            self.notify(f"Maximum selections ({max_sel}) reached", severity="warning")
+            return False
+        return True
+
+    async def select_all_visible(self) -> None:
+        """Select all currently visible/filtered resources.
+
+        Adds all resources in filtered_resources to the selected_resources set.
+        Respects max_selections limit if set.
+        """
+        max_sel = getattr(self, '_max_selections', None)
+        for resource in self.filtered_resources:
+            resource_id = resource.get("id", resource.get("name"))
+            if resource_id:
+                # Check limit before adding
+                if max_sel is not None and len(self.selected_resources) >= max_sel:
+                    break
+                self.selected_resources.add(resource_id)
+
+        # Update UI
+        await self.update_status_bar()
+
+        # Show install button if selections exist
+        install_button = self.query_one("#install-selected-button", Button)
+        if self.selected_resources:
+            install_button.remove_class("hidden")
+        else:
+            install_button.add_class("hidden")
+
+    async def clear_selections(self) -> None:
+        """Clear all selections.
+
+        Removes all resource IDs from the selected_resources set and updates UI.
+        """
+        self.selected_resources.clear()
+
+        # Update UI
+        await self.update_status_bar()
+
+        # Hide install button
+        install_button = self.query_one("#install-selected-button", Button)
+        install_button.add_class("hidden")
+
+    async def sort_by(self, field: str) -> None:
+        """Sort resources by specified field.
+
+        Args:
+            field: Field to sort by (name, type, updated, version)
+
+        Sorts the filtered_resources list and refreshes the table.
+        Preserves selections during sort.
+        """
+        # Ensure filtered_resources is initialized
+        if not hasattr(self, 'filtered_resources') or self.filtered_resources is None:
+            self.filtered_resources = []
+
+        # Valid sort fields
+        valid_fields = ["name", "type", "updated", "version"]
+        if field not in valid_fields:
+            field = "name"
+
+        # Get or initialize sort state
+        current_sort_field = getattr(self, '_sort_field', None)
+        current_sort_reverse = getattr(self, '_sort_reverse', False)
+
+        # Toggle sort direction if same field, otherwise reset to ascending
+        if current_sort_field == field:
+            self._sort_reverse = not current_sort_reverse
+        else:
+            self._sort_reverse = False
+
+        # Always set the field
+        self._sort_field = field
+
+        # Sort the filtered resources
+        try:
+            if field == "name":
+                self.filtered_resources.sort(
+                    key=lambda r: r.get("name", r.get("id", "")).lower(),
+                    reverse=self._sort_reverse
+                )
+            elif field == "type":
+                self.filtered_resources.sort(
+                    key=lambda r: r.get("type", "").lower(),
+                    reverse=self._sort_reverse
+                )
+            elif field == "updated":
+                self.filtered_resources.sort(
+                    key=lambda r: r.get("updated", ""),
+                    reverse=self._sort_reverse
+                )
+            elif field == "version":
+                self.filtered_resources.sort(
+                    key=lambda r: r.get("version", ""),
+                    reverse=self._sort_reverse
+                )
+        except Exception:
+            # Fallback to name if sorting fails
+            self.filtered_resources.sort(
+                key=lambda r: r.get("name", r.get("id", "")).lower()
+            )
+
+        # Refresh the table
+        await self.populate_resource_list()
+
+    # ============================================================================
+    # ADVANCED UI FEATURES - Phase 2
+    # ============================================================================
+
+    def action_show_help(self) -> None:
+        """Show help screen with keyboard shortcuts.
+
+        Opens a modal help screen displaying all available keyboard shortcuts
+        and context-sensitive help for the current screen.
+        """
+        from claude_resource_manager.tui.screens.help_screen import HelpScreen
+
+        help_screen = HelpScreen(context="browser")
+        self.app.push_screen(help_screen)
+
+    def action_open_sort_menu(self) -> None:
+        """Open sort menu for resource ordering.
+
+        Cycles through sort options: name -> type -> updated -> name
+        Uses the existing sort_by method for consistent behavior.
+        """
+        # Map to use the existing sort_by method
+        # Cycle through sort options
+        sort_options = ["name", "type", "updated"]
+
+        # Get current sort from existing state
+        current_sort_field = getattr(self, '_sort_field', 'name')
+
+        # Find next option
+        try:
+            current_index = sort_options.index(current_sort_field)
+            next_index = (current_index + 1) % len(sort_options)
+        except ValueError:
+            next_index = 0
+
+        next_field = sort_options[next_index]
+
+        # Use existing sort_by method
+        self.app.call_later(self.sort_by, next_field)
+
+        # Save preference
+        self.app.call_later(self._save_preferences)
+
+        # Notify user
+        direction = "↓" if getattr(self, '_sort_reverse', False) else "↑"
+        self.notify(
+            f"Sorted by {next_field} {direction}",
+            title="Sort Applied",
+            timeout=2
+        )
+
+    def action_toggle_preview(self) -> None:
+        """Toggle preview pane visibility.
+
+        Manually shows or hides the preview pane. User preference overrides
+        automatic responsive hiding for narrow terminals.
+        """
+        preview = self.query_one("#preview-pane", Static)
+
+        if self._preview_visible:
+            # Hide preview
+            preview.add_class("hidden")
+            preview.styles.display = "none"
+            self._preview_visible = False
+            self.notify("Preview pane hidden", timeout=2)
+        else:
+            # Show preview
+            preview.remove_class("hidden")
+            preview.styles.display = "block"
+            self._preview_visible = True
+            self.notify("Preview pane shown", timeout=2)
+
+        # Save preference
+        self.app.call_later(self._save_preferences)
+
+    def on_resize(self, event: events.Resize) -> None:
+        """Handle terminal resize events.
+
+        Adapts the layout to the new terminal size:
+        - Shows size warning if terminal is too small
+        - Hides preview pane on narrow terminals (< 80 cols)
+        - Enables scrolling for small terminals
+        - Updates internal size tracking
+
+        Args:
+            event: Resize event with new terminal dimensions
+        """
+        self._terminal_width = event.size.width
+        self._terminal_height = event.size.height
+
+        # Check minimum size
+        size_warning = self.query_one("#size-warning", Static)
+        if self._terminal_width < self.MIN_WIDTH or self._terminal_height < self.MIN_HEIGHT:
+            # Show size warning
+            size_warning.remove_class("hidden")
+        else:
+            # Hide size warning
+            size_warning.add_class("hidden")
+
+        # Responsive preview pane (only if preview is enabled by user)
+        try:
+            preview = self.query_one("#preview-pane", Static)
+            if self._terminal_width < self.NARROW_WIDTH:
+                # Auto-hide preview on narrow terminals
+                if self._preview_visible:
+                    preview.styles.display = "none"
+            else:
+                # Auto-show preview on wider terminals (if user hasn't manually disabled it)
+                if self._preview_visible:
+                    preview.styles.display = "block"
+        except Exception:
+            # Preview pane may not exist yet
+            pass
+
+        # Enable vertical scrolling for small terminals
+        try:
+            table = self.query_one(DataTable)
+            if self._terminal_height < 20:
+                table.show_vertical_scrollbar = True
+            else:
+                table.show_vertical_scrollbar = False
+        except Exception:
+            # Table may not exist yet
+            pass
+
+    def _load_preferences(self) -> None:
+        """Load user preferences from config file.
+
+        Loads saved preferences including:
+        - Sort field and direction
+        - Preview pane visibility
+        - Filter preferences
+
+        Preferences are stored in ~/.config/claude-resources/settings.json
+        """
+        try:
+            config_path = Path.home() / ".config" / "claude-resources" / "settings.json"
+
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    prefs = json.load(f)
+
+                # Load sort preferences (use existing field names)
+                self._sort_field = prefs.get("sort_field", "name")
+                self._sort_reverse = not prefs.get("sort_ascending", True)  # Reverse ascending flag
+
+                # Load current_sort for new code
+                self.current_sort = prefs.get("sort_field", "name")
+                self._sort_ascending = prefs.get("sort_ascending", True)
+
+                self._preview_visible = prefs.get("preview_visible", True)
+        except Exception:
+            # Silently fail - use defaults
+            pass
+
+    def _save_preferences(self) -> None:
+        """Save user preferences to config file.
+
+        Persists preferences including:
+        - Sort field and direction
+        - Preview pane visibility
+        - Filter preferences
+
+        Preferences are stored in ~/.config/claude-resources/settings.json
+        """
+        try:
+            config_dir = Path.home() / ".config" / "claude-resources"
+            config_dir.mkdir(parents=True, exist_ok=True)
+
+            config_path = config_dir / "settings.json"
+
+            # Use existing _sort_field and _sort_reverse attributes
+            sort_field = getattr(self, '_sort_field', 'name')
+            sort_reverse = getattr(self, '_sort_reverse', False)
+
+            prefs = {
+                "sort_field": sort_field,
+                "sort_ascending": not sort_reverse,  # Inverse of reverse
+                "preview_visible": self._preview_visible,
+            }
+
+            with open(config_path, "w") as f:
+                json.dump(prefs, f, indent=2)
+        except Exception:
+            # Silently fail - preferences won't persist
+            pass

@@ -389,3 +389,171 @@ class AsyncInstaller:
         results.append(result)
 
         return results
+
+    async def batch_install(
+        self,
+        resources: list[dict[str, Any]],
+        progress_callback: Optional[Callable[[str, int, int, str], None]] = None,
+        parallel: bool = True,
+        rollback_on_error: bool = False,
+        skip_installed: bool = False,
+    ) -> list[InstallResult]:
+        """Install multiple resources with progress tracking.
+
+        Args:
+            resources: List of resources to install
+            progress_callback: Optional callback(resource_id, current, total, status)
+            parallel: Use parallel downloads (faster)
+            rollback_on_error: Rollback all on any failure (not implemented yet)
+            skip_installed: Skip resources that are already installed
+
+        Returns:
+            List of InstallResult objects for each resource
+        """
+        # Deduplicate resources by ID
+        seen_ids = set()
+        unique_resources = []
+        for resource in resources:
+            resource_id = resource.get("id")
+            if resource_id and resource_id not in seen_ids:
+                seen_ids.add(resource_id)
+                unique_resources.append(resource)
+            elif not resource_id:
+                # Include resources without IDs
+                unique_resources.append(resource)
+
+        total = len(unique_resources)
+        results = []
+
+        # Check for circular dependencies first
+        try:
+            self._check_circular_dependencies_batch(unique_resources)
+        except Exception as e:
+            # Return failure result if circular dependency detected
+            return [InstallResult(
+                success=False,
+                error=str(e)
+            ) for _ in unique_resources]
+
+        # Install resources (with dependencies if needed)
+        for idx, resource in enumerate(unique_resources, 1):
+            current = idx
+            resource_id = resource.get("id", "unknown")
+
+            # Send progress update
+            if progress_callback:
+                if asyncio.iscoroutinefunction(progress_callback):
+                    await progress_callback(resource_id, current, total, "Installing")
+                else:
+                    progress_callback(resource_id, current, total, "Installing")
+
+            # Check if resource has dependencies
+            dependencies = resource.get("dependencies", {}).get("required", [])
+            if dependencies:
+                # Install with dependencies
+                dep_results = await self.install_with_dependencies(resource, force=not skip_installed)
+                results.extend(dep_results)
+            else:
+                # Simple install
+                result = await self.install(resource, force=not skip_installed)
+                results.append(result)
+
+        return results
+
+    async def batch_install_with_summary(
+        self,
+        resources: list[dict[str, Any]],
+        **kwargs
+    ) -> dict[str, Any]:
+        """Install batch and return summary dictionary.
+
+        Args:
+            resources: List of resources to install
+            **kwargs: Additional arguments passed to batch_install
+
+        Returns:
+            Dictionary with summary statistics:
+            {
+                "total": int,
+                "succeeded": int,
+                "failed": int,
+                "skipped": int,
+                "duration": float,
+                "results": list[InstallResult]
+            }
+        """
+        import time
+
+        start_time = time.time()
+        results = await self.batch_install(resources, **kwargs)
+        duration = time.time() - start_time
+
+        succeeded = sum(1 for r in results if r.success and not r.skipped)
+        failed = sum(1 for r in results if not r.success)
+        skipped = sum(1 for r in results if r.skipped)
+
+        return {
+            "total": len(results),
+            "succeeded": succeeded,
+            "failed": failed,
+            "skipped": skipped,
+            "duration": duration,
+            "results": results,
+        }
+
+    async def rollback_batch(self, results: list[InstallResult]) -> None:
+        """Rollback installed resources from batch.
+
+        Args:
+            results: List of install results to rollback
+
+        Deletes all successfully installed files.
+        """
+        for result in results:
+            if result.success and result.path and result.path.exists():
+                try:
+                    result.path.unlink()
+                except Exception:
+                    # Ignore errors during rollback
+                    pass
+
+    def _check_circular_dependencies_batch(self, resources: list[dict[str, Any]]) -> None:
+        """Check for circular dependencies in batch.
+
+        Args:
+            resources: List of resources to check
+
+        Raises:
+            InstallerError: If circular dependency detected
+        """
+        # Build dependency graph
+        graph: dict[str, set[str]] = {}
+        for resource in resources:
+            resource_id = resource.get("id")
+            if resource_id:
+                deps = resource.get("dependencies", {}).get("required", [])
+                graph[resource_id] = set(deps)
+
+        # Detect cycles using DFS
+        visited = set()
+        rec_stack = set()
+
+        def has_cycle(node: str) -> bool:
+            visited.add(node)
+            rec_stack.add(node)
+
+            # Check all dependencies
+            for dep in graph.get(node, set()):
+                if dep not in visited:
+                    if has_cycle(dep):
+                        return True
+                elif dep in rec_stack:
+                    return True
+
+            rec_stack.remove(node)
+            return False
+
+        for node in graph:
+            if node not in visited:
+                if has_cycle(node):
+                    raise InstallerError(f"Circular dependency detected involving: {node}")

@@ -34,6 +34,29 @@ This document describes the original Go-based plan. While Go would provide bette
 
 ---
 
+## ⚠️ PHASE 3 UPDATE (October 5, 2025)
+
+**Phase 3 Planning Complete:** VHS Documentation & Accessibility
+
+**Active Phase 3 Plan:** See `EPCC_PLAN_PHASE3_VHS.md`
+
+This document contains the original Phases 1-2 planning. **Phase 3 is now planned separately** and includes:
+- **VHS Documentation System** - 5 animated demos for README/docs
+- **WCAG 2.1 AA Compliance** - 100% accessibility (currently 78%)
+- **Visual Polish** - Checkbox column, selection indicators
+- **Test Alignment** - Behavior-focused tests (15 updates)
+
+**Phase 3 Timeline:** 2-3 weeks (15-30 hours with parallel agent workflow)
+
+**Phase Status:**
+- ✅ Phase 1: Complete (367 tests, 82% coverage)
+- ✅ Phase 2: Complete (457 tests, 92% coverage, 99.79% passing)
+- 📋 Phase 3: Planning complete → Ready for CODE phase
+
+**Next Action:** `/epcc-code --tdd "Phase 3: VHS Documentation and Accessibility"`
+
+---
+
 ## Original Go Plan Summary
 
 ### What We're Building

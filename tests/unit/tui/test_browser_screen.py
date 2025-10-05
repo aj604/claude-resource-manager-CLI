@@ -146,10 +146,11 @@ class TestBrowserScreenResourceList:
             resource_list = app.screen.query_one(DataTable)
             first_row = resource_list.get_row_at(0)
 
-            # Check formatting
-            assert first_row[0] == "Architect"  # Name
-            assert first_row[1] == "agent"  # Type
-            assert "architecture" in str(first_row[2]).lower()  # Description
+            # Check formatting (checkbox is column 0)
+            assert first_row[0] == "[ ]"  # Checkbox (unselected)
+            assert first_row[1] == "Architect"  # Name
+            assert first_row[2] == "agent"  # Type
+            assert "architecture" in str(first_row[3]).lower()  # Description
 
     @pytest.mark.asyncio
     async def test_resource_list_handles_empty_results(self, mock_catalog_loader):
@@ -509,8 +510,8 @@ class TestBrowserScreenSearchFunctionality:
             # Should display score in the description
             resource_list = app.screen.query_one(DataTable)
             first_row = resource_list.get_row_at(0)
-            # Score should be shown in description column
-            assert "85" in str(first_row[2])
+            # Score should be shown in description column (now column 3 with checkbox)
+            assert "85" in str(first_row[3])
 
     @pytest.mark.asyncio
     async def test_empty_search_shows_all_resources(

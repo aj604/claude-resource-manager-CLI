@@ -117,8 +117,20 @@ source .venv/bin/activate && pytest
 
 ## Git Workflow
 
-- **Branch naming**: `feature/description` or `fix/description`
-- **Commit messages**: Conventional commits format
+**⚠️ CRITICAL: Never commit directly to main!**
+- **All work must be on feature branches** - Use `{user}/{feature-description}` format
+- **All changes must go through PR** - Never push directly to main, always create a pull request
+- **Branch protection**: Main branch requires PR review before merge
+
+### Workflow Steps:
+1. Create feature branch from main: `git checkout -b {user}/{feature-name}`
+2. Make changes and commit to feature branch
+3. Push feature branch: `git push -u origin {user}/{feature-name}`
+4. Create PR using `gh pr create`
+5. Wait for review/approval before merging
+
+### Standards:
+- **Commit messages**: Conventional commits format (feat:, fix:, chore:, etc.)
 - **Pre-commit**: Run tests before committing (`pytest`)
 - **No secrets**: Never commit `.env`, credentials, API keys
 
@@ -139,3 +151,21 @@ When executing commands in this repository:
 5. ✅ Run tests after changes to verify nothing broke
 
 Remember: This is a **Python project with a virtualenv**. The system Python lacks the dependencies!
+
+## Parallel Subagent Workflow (Phase 2+)
+
+**IMPORTANT**: For multi-component features, read `LESSONS_LEARNED_PHASE2.md` first!
+
+### Efficient Agent Launch Pattern:
+1. **Map dependencies** - Identify parallel vs sequential work
+2. **Test-generators** (parallel) - Write behavior-focused tests, not implementation-prescriptive
+3. **Implementation waves** - Core features → Integration → Polish
+4. **Reviews at 70%** - Launch security/UX/docs when architecture clear, not at 100%
+
+### Key Lessons:
+- Test **behaviors** not implementation details (allows better UX without test rewrites)
+- Visual state feedback is **P0** not polish (checkboxes, progress indicators)
+- Documentation agent can run at 70% implementation (saves time)
+- Agent handoffs need structured output (summary + next steps)
+
+**See**: `LESSONS_LEARNED_PHASE2.md` for full details and time-saving patterns.
