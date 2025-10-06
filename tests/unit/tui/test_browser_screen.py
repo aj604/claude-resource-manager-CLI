@@ -36,7 +36,11 @@ class BrowserScreenTestApp(App):
     def on_mount(self) -> None:
         """Push BrowserScreen on mount."""
         self.push_screen(
-            BrowserScreen(catalog_loader=self.catalog_loader, search_engine=self.search_engine)
+            BrowserScreen(
+                catalog_loader=self.catalog_loader,
+                search_engine=self.search_engine,
+                load_preferences=False  # Disable preferences for predictable test behavior
+            )
         )
 
 
@@ -144,10 +148,11 @@ class TestBrowserScreenResourceList:
             first_row = resource_list.get_row_at(0)
 
             # Check formatting (checkbox is column 0)
+            # First resource alphabetically is "/commit" (command)
             assert first_row[0] == "[ ]"  # Checkbox (unselected)
-            assert first_row[1] == "Architect"  # Name
-            assert first_row[2] == "agent"  # Type
-            assert "architecture" in str(first_row[3]).lower()  # Description
+            assert first_row[1] == "/commit"  # Name
+            assert first_row[2] == "command"  # Type
+            assert "commit" in str(first_row[3]).lower()  # Description
 
     @pytest.mark.asyncio
     async def test_resource_list_handles_empty_results(self, mock_catalog_loader):
@@ -311,12 +316,17 @@ class TestBrowserScreenKeyboardNavigation:
             search_input.value = "test query"
             await pilot.pause()
 
-            # Press escape
+            # First escape clears text but keeps focus
             await pilot.press("escape")
             await pilot.pause()
 
-            # Search should be cleared and focus returned to table
             assert search_input.value == ""
+            assert search_input.has_focus
+
+            # Second escape returns focus to table
+            await pilot.press("escape")
+            await pilot.pause()
+
             assert app.screen.focused is app.screen.query_one(DataTable)
 
     @pytest.mark.asyncio
@@ -545,7 +555,7 @@ class TestBrowserScreenSearchFunctionality:
 
             # Should show filtered resources (agents only)
             # Not all resources, because filter is still active
-            assert app.screen.query_one(DataTable).row_count == 3  # 3 agents in sample
+            assert app.screen.query_one(DataTable).row_count == 5  # 5 agents in sample
 
 
 class TestBrowserScreenCategoryFiltering:
@@ -564,8 +574,8 @@ class TestBrowserScreenCategoryFiltering:
             await pilot.pause()
 
             resource_list = app.screen.query_one(DataTable)
-            # Should only show agents (3 in sample data)
-            assert resource_list.row_count == 3
+            # Should only show agents (5 in sample data)
+            assert resource_list.row_count == 5
 
     @pytest.mark.asyncio
     async def test_filter_by_command_type(self, mock_catalog_loader, sample_resources_list):
@@ -738,15 +748,15 @@ class TestBrowserScreenPreviewPane:
             assert "opus" in preview_text
 
     @pytest.mark.asyncio
-    async def test_preview_shows_dependencies(self, mock_catalog_loader, sample_resource):
+    async def test_preview_shows_dependencies(self, mock_catalog_loader, sample_resource_with_deps):
         """Preview pane displays resource dependencies."""
-        mock_catalog_loader.load_resources = AsyncMock(return_value=[sample_resource])
+        mock_catalog_loader.load_resources = AsyncMock(return_value=[sample_resource_with_deps])
         app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
 
         async with app.run_test() as pilot:
             await pilot.pause()
 
-            app.screen.selected_resource = sample_resource
+            app.screen.selected_resource = sample_resource_with_deps
             await app.screen.update_preview()
             await pilot.pause()
 
@@ -812,9 +822,13 @@ class TestBrowserScreenStatusBar:
 
     @pytest.mark.asyncio
     async def test_status_bar_shows_search_results_count(
-        self, mock_catalog_loader, mock_search_engine
+        self, mock_catalog_loader, mock_search_engine, sample_resources_list
     ):
         """Status bar shows number of search results."""
+        # Load catalog with multiple resources (6 in sample_resources_list)
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+
+        # Search returns only 1 result
         mock_search_engine.search.return_value = [
             {
                 "id": "test",

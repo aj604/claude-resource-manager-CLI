@@ -213,8 +213,8 @@ Press `?` in the TUI to show context-sensitive help with all keyboard shortcuts.
 
 ### Community
 
-- GitHub Issues: [Report bugs or request features](https://github.com/anthropics/claude-resource-manager/issues)
-- Discussions: [Ask questions](https://github.com/anthropics/claude-resource-manager/discussions)
+- GitHub Issues: [Report bugs or request features](https://github.com/aj604/claude-resource-manager-CLI/issues)
+- Discussions: [Ask questions](https://github.com/aj604/claude-resource-manager-CLI/discussions)
 
 ---
 

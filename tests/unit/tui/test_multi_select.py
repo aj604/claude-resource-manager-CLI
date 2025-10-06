@@ -150,8 +150,8 @@ class TestSelectionStateManagement:
             await screen.select_all_visible()
             await pilot.pause()
 
-            # Should have selected all agents (3 in sample data)
-            assert len(screen.selected_resources) == 3
+            # Should have selected all agents (5 in sample data)
+            assert len(screen.selected_resources) == 5
 
     @pytest.mark.asyncio
     async def test_WHEN_clear_selections_THEN_empties_set(

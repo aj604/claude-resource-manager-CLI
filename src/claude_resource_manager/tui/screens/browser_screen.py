@@ -80,13 +80,18 @@ class BrowserScreen(Screen):
     MIN_HEIGHT = 10  # Minimum terminal height
 
     def __init__(
-        self, catalog_loader: Optional[Any] = None, search_engine: Optional[Any] = None, **kwargs
+        self,
+        catalog_loader: Optional[Any] = None,
+        search_engine: Optional[Any] = None,
+        load_preferences: bool = True,
+        **kwargs
     ):
         """Initialize the browser screen.
 
         Args:
             catalog_loader: Service for loading resources from catalog
             search_engine: Service for searching and filtering resources
+            load_preferences: If True (default), load saved preferences. If False, use defaults (for tests).
             **kwargs: Additional arguments passed to Screen
         """
         # Set the screen name before calling super().__init__
@@ -113,8 +118,9 @@ class BrowserScreen(Screen):
         self._terminal_width: int = 100  # Current terminal width
         self._terminal_height: int = 30  # Current terminal height
 
-        # Load saved preferences
-        self._load_preferences()
+        # Load saved preferences (skip in test mode for predictable state)
+        if load_preferences:
+            self._load_preferences()
 
         # Accessibility
         self.screen_reader: Optional[ScreenReaderAnnouncer] = None
@@ -221,8 +227,9 @@ class BrowserScreen(Screen):
                 self.resources = await self.catalog_loader.load_resources()
                 # Ensure we create a new list, not just a reference
                 self.filtered_resources = list(self.resources)
-                # Apply default sort (name, ascending)
-                await self.sort_by("name")
+                # Apply saved sort preference (or default to name, ascending)
+                saved_sort_field = getattr(self, "current_sort", "name")
+                await self.sort_by(saved_sort_field, toggle_direction=False)
         except Exception as e:
             # Show error message
             error_display = self.query_one("#error-message", Static)
@@ -366,10 +373,9 @@ class BrowserScreen(Screen):
     async def action_clear_search(self) -> None:
         """Clear the search input and return focus to table.
 
-        Triggered by the Escape key. If search input has focus:
-        - Clears the search text
-        - Returns focus to the resource table
-        - Resets filtered resources to show all
+        Triggered by the Escape key. Two-stage behavior:
+        1. If search has text: clear it and keep focus
+        2. If search is empty: return focus to table
         """
         search_input = self.query_one("#search-input", Input)
 
@@ -377,13 +383,15 @@ class BrowserScreen(Screen):
         if not search_input.has_focus:
             return
 
-        # Clear search and return to table in one action
-        search_input.value = ""
-        await self.perform_search("")
-
-        # Return focus to table
-        table = self.query_one("#resource-table", DataTable)
-        table.focus()
+        # Two-stage escape behavior
+        if search_input.value:
+            # First escape: clear search text but keep focus
+            search_input.value = ""
+            await self.perform_search("")
+        else:
+            # Second escape: return focus to table
+            table = self.query_one("#resource-table", DataTable)
+            table.focus()
 
     async def action_toggle_select(self) -> None:
         """Toggle multi-select for the current resource.
@@ -763,6 +771,19 @@ class BrowserScreen(Screen):
         """
         self.selected_resources.clear()
 
+        # Update all checkbox cells in the table
+        table = self.query_one(DataTable)
+        for row_index in range(table.row_count):
+            try:
+                table.update_cell_at((row_index, 0), "[ ]")
+            except Exception:
+                # Skip if row doesn't exist
+                pass
+
+        # Update selection indicator
+        selection_indicator = self.query_one(SelectionIndicator)
+        selection_indicator.update_count(0, len(self.filtered_resources))
+
         # Update UI
         await self.update_status_bar()
 
@@ -770,19 +791,19 @@ class BrowserScreen(Screen):
         install_button = self.query_one("#install-selected-button", Button)
         install_button.add_class("hidden")
 
-    async def sort_by(self, field: str, toggle_direction: bool = False) -> None:
+    async def sort_by(self, field: str, toggle_direction: bool = True) -> None:
         """Sort resources by specified field.
 
         Args:
             field: Field to sort by (name, type, updated, version)
-            toggle_direction: If True, toggle direction when same field. If False, keep direction.
+            toggle_direction: If True (default), toggle direction when same field. If False, keep direction.
 
         Sorts the filtered_resources list and refreshes the table.
         Preserves selections during sort.
 
         Note:
-            If current_sort and _sort_reverse are already set to desired values
-            (e.g., by action_open_sort_menu), they will be used as-is.
+            Default behavior is to toggle direction when sorting by the same field repeatedly.
+            Set toggle_direction=False to maintain the current direction (used by action_open_sort_menu).
         """
         # Ensure filtered_resources is initialized
         if not hasattr(self, "filtered_resources") or self.filtered_resources is None:
@@ -793,23 +814,23 @@ class BrowserScreen(Screen):
         if field not in valid_fields:
             field = "name"
 
-        # Only update state if not already set to target field with correct direction
-        # This allows action_open_sort_menu to pre-set state synchronously
-        state_already_set = (self.current_sort == field and not toggle_direction)
+        # Get or initialize sort state
+        current_sort_field = getattr(self, "_sort_field", None)
 
-        if not state_already_set:
-            # Handle direction toggling
-            if toggle_direction:
-                # Toggle requested - reverse direction
-                self._sort_reverse = not self._sort_reverse
-            elif self.current_sort != field:
-                # Different field - set default direction
-                # Default direction: descending for 'updated' (newest first), ascending for others
-                self._sort_reverse = True if field == "updated" else False
-            # else: same field, no toggle - keep current direction
+        # Handle direction toggling
+        if toggle_direction and current_sort_field == field:
+            # Same field with toggle enabled - reverse direction
+            current_reverse_for_field = getattr(self, "_sort_reverse", False)
+            self._sort_reverse = not current_reverse_for_field
+        elif current_sort_field != field:
+            # Different field - set default direction
+            # Default direction: descending for 'updated' (newest first), ascending for others
+            self._sort_reverse = True if field == "updated" else False
+        # else: same field, no toggle - keep current direction
 
-            # Set the field
-            self.current_sort = field
+        # Set the field (both tracking attributes for compatibility)
+        self._sort_field = field
+        self.current_sort = field  # Also update public attribute
 
         # Sort the filtered resources
         try:

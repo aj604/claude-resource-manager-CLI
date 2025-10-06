@@ -24,7 +24,7 @@ Thank you for contributing! This guide will help you get started with developmen
 
 ```bash
 # Clone the repository
-git clone https://github.com/anthropics/claude-resource-manager-CLI.git
+git clone https://github.com/aj604/claude-resource-manager-CLI.git
 cd claude-resource-manager-CLI
 
 # Create virtual environment

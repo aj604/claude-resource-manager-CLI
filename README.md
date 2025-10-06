@@ -71,8 +71,8 @@ pip install claude-resources
 ### From Source
 
 ```bash
-git clone https://github.com/anthropics/claude_resource_manager.git
-cd claude_resource_manager-CLI
+git clone https://github.com/aj604/claude-resource-manager-CLI.git
+cd claude-resource-manager-CLI
 pip install -e .
 ```
 
@@ -82,7 +82,7 @@ pip install -e .
 
 ```bash
 # Browse resources with interactive TUI
-claude-resources browse
+crm browse
 
 # In the browser:
 #   / - Search (with typo tolerance!)

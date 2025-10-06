@@ -695,16 +695,16 @@ Duration: 13 days minimum (65% of timeline)
    - Source code archive
    - Checksums and signatures
 
-2. **Homebrew** (macOS/Linux)
-   - Submit formula to homebrew-core
-   - `brew install claude-resources`
+2. **PyPI** (Python Package Index)
+   - Publish to PyPI
+   - `pip install claude-resource-manager`
 
 3. **Direct Download**
    - Install script (curl | bash)
    - Manual download from releases page
 
-4. **Go Install** (developers)
-   - `go install github.com/your-org/claude-resources@latest`
+4. **pip install from GitHub** (developers)
+   - `pip install git+https://github.com/aj604/claude-resource-manager-CLI.git`
 
 **Launch Activities:**
 - Release announcement blog post

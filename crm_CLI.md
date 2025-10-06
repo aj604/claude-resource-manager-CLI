@@ -595,10 +595,10 @@ func (r *Registry) Search(query string) []Resource {
 ### Development
 ```bash
 # Build for development
-go build -o claude-resources ./cmd/main.go
+pip install -e ".[dev]"
 
 # Install locally
-go install github.com/your-org/claude-resources@latest
+pip install claude_resource_manager
 ```
 
 ### Release
@@ -615,12 +615,11 @@ Distribution Methods:
      - Automated builds via GitHub Actions
      - Pre-compiled binaries for all platforms
 
-  2. Homebrew (macOS/Linux)
-     - Formula in homebrew-core
-     - `brew install claude-resources`
+  2. PyPI (Python Package Index)
+     - `pip install claude-resource-manager`
 
-  3. Go Install (developers)
-     - `go install github.com/your-org/claude-resources@latest`
+  3. pip install from GitHub (developers)
+     - `pip install git+https://github.com/aj604/claude-resource-manager-CLI.git`
 
   4. Direct Download
      - curl -L https://github.com/.../latest/download/... | tar xz

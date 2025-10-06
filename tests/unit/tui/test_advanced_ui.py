@@ -47,10 +47,11 @@ from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 class AdvancedUITestApp(App):
     """Test app for advanced UI testing."""
 
-    def __init__(self, catalog_loader=None, search_engine=None, **kwargs):
+    def __init__(self, catalog_loader=None, search_engine=None, load_preferences=False, **kwargs):
         super().__init__(**kwargs)
         self.catalog_loader = catalog_loader
         self.search_engine = search_engine
+        self.load_preferences = load_preferences
 
         # Theme management - for test compatibility
         from claude_resource_manager.tui.app import ThemeManager
@@ -64,7 +65,11 @@ class AdvancedUITestApp(App):
     def on_mount(self) -> None:
         """Push BrowserScreen on mount."""
         self.push_screen(
-            BrowserScreen(catalog_loader=self.catalog_loader, search_engine=self.search_engine)
+            BrowserScreen(
+                catalog_loader=self.catalog_loader,
+                search_engine=self.search_engine,
+                load_preferences=self.load_preferences,  # Default False for predictable test state
+            )
         )
 
     def resize(self, width: int, height: int) -> None:
@@ -493,7 +498,7 @@ class TestSortingFeatures:
         config_file = config_dir / "settings.json"
 
         with patch("pathlib.Path.home", return_value=tmp_path):
-            app1 = AdvancedUITestApp(catalog_loader=mock_catalog_loader)
+            app1 = AdvancedUITestApp(catalog_loader=mock_catalog_loader, load_preferences=True)
 
             async with app1.run_test() as pilot:
                 await pilot.pause()
@@ -515,7 +520,7 @@ class TestSortingFeatures:
                 assert config_file.exists(), "Config file not created"
 
             # Create new app instance and verify it loads the preference
-            app2 = AdvancedUITestApp(catalog_loader=mock_catalog_loader)
+            app2 = AdvancedUITestApp(catalog_loader=mock_catalog_loader, load_preferences=True)
 
             async with app2.run_test() as pilot:
                 await pilot.pause()
