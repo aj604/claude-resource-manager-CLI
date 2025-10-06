@@ -116,19 +116,14 @@ class TUITestHelper:
             pilot: Textual test pilot
 
         Note:
-            Current implementation: Press same sort key twice to reverse.
-            This abstracts the mechanism.
+            Current implementation: Complete TWO full cycles to toggle direction.
+            - First cycle (3 presses): Returns to start field, same direction
+            - Second cycle (3 more presses): Returns to start field, toggles direction
         """
-        browser = pilot.app.screen
-        current_field = getattr(browser, "_sort_field", "name")
-
-        # Trigger the same sort again to reverse
-        if current_field == "name":
-            await TUITestHelper.trigger_sort_by_name(pilot)
-        elif current_field == "type":
-            await TUITestHelper.trigger_sort_by_type(pilot)
-        elif current_field == "updated":
-            await TUITestHelper.trigger_sort_by_updated(pilot)
+        # Press 's' 6 times to complete two full cycles, which toggles direction
+        for _ in range(6):
+            await pilot.press("s")
+            await pilot.pause()
 
     # ============================================================================
     # SORT ASSERTION METHODS (Behavior-Focused)

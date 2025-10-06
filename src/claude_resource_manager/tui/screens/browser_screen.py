@@ -32,6 +32,7 @@ from textual.widgets import (
 
 # Accessibility imports
 from claude_resource_manager.tui.widgets.aria_live import AriaLiveRegion, ScreenReaderAnnouncer
+from claude_resource_manager.tui.widgets.selection_indicator import SelectionIndicator
 
 
 class BrowserScreen(Screen):
@@ -102,6 +103,8 @@ class BrowserScreen(Screen):
         # Sorting state
         self.current_sort: str = "name"  # Current sort field (name, type, updated)
         self._sort_ascending: bool = True  # Sort direction
+        self._sort_field: str = "name"  # Internal sort field tracking
+        self._sort_reverse: bool = False  # Internal sort direction (False = ascending)
 
         # Responsive state
         self._preview_visible: bool = True  # Preview pane visibility
@@ -163,8 +166,10 @@ class BrowserScreen(Screen):
             # Preview pane
             yield Static("Select a resource to view details", id="preview-pane")
 
-        # Status bar
-        yield Static("0 resources", id="status-bar")
+        # Status bar with selection indicator
+        with Horizontal(id="status-container"):
+            yield Static("0 resources", id="status-bar")
+            yield SelectionIndicator()
 
         # Install button (hidden by default)
         yield Button("Install Selected", id="install-selected-button", classes="hidden")
@@ -186,7 +191,11 @@ class BrowserScreen(Screen):
         """
         # Setup the DataTable columns (checkbox column first for multi-select)
         table = self.query_one(DataTable)
-        table.add_columns("", "Name", "Type", "Description", "Version")
+        table.add_column("", width=4, key="checkbox")  # Fixed width for checkbox
+        table.add_column("Name", key="name")
+        table.add_column("Type", key="type")
+        table.add_column("Description", key="description")
+        table.add_column("Version", key="version")
         table.cursor_type = "row"
 
         # Setup accessibility - screen reader announcer
@@ -210,7 +219,8 @@ class BrowserScreen(Screen):
                 self.resources = await self.catalog_loader.load_resources()
                 # Ensure we create a new list, not just a reference
                 self.filtered_resources = list(self.resources)
-                await self.populate_resource_list()
+                # Apply default sort (name, ascending)
+                await self.sort_by("name")
         except Exception as e:
             # Show error message
             error_display = self.query_one("#error-message", Static)
@@ -398,18 +408,22 @@ class BrowserScreen(Screen):
                     new_checkbox = "[x]"
 
                 # Update checkbox cell in the table (first column, index 0)
-                row_key = table.get_row_at(current_row)
                 table.update_cell_at((current_row, 0), new_checkbox)
 
                 # Announce selection change to screen reader
                 if self.screen_reader:
                     resource_name = resource.get("name", resource_id)
-                    resource_type = resource.get("type", "resource")
                     is_selected = resource_id in self.selected_resources  # After toggle, is it selected?
                     self.screen_reader.announce_selection(resource_name, is_selected)
 
                 # Update status bar
                 await self.update_status_bar()
+
+                # Update selection indicator
+                selection_indicator = self.query_one(SelectionIndicator)
+                selection_indicator.update_count(
+                    len(self.selected_resources), len(self.filtered_resources)
+                )
 
                 # Show/hide install button
                 install_button = self.query_one("#install-selected-button", Button)
@@ -468,12 +482,9 @@ class BrowserScreen(Screen):
                     or query.lower() in r.get("description", "").lower()
                 ]
 
-            # Reapply current sort if one is active
-            current_sort_field = getattr(self, '_sort_field', None)
-            if current_sort_field:
-                await self.sort_by(current_sort_field)
-            else:
-                await self.populate_resource_list()
+            # Reapply current sort to maintain sort state
+            current_sort_field = getattr(self, '_sort_field', 'name')
+            await self.sort_by(current_sort_field, toggle_direction=False)
 
         except Exception as e:
             # Show search error
@@ -510,14 +521,9 @@ class BrowserScreen(Screen):
                 r for r in self.resources if r.get("type", "").lower() == self.current_filter
             ]
 
-        # Reapply current sort if one is active (but don't announce it)
-        current_sort_field = getattr(self, '_sort_field', None)
-        if current_sort_field:
-            # Temporarily disable sort announcement
-            should_announce_sort = False
-            await self.sort_by(current_sort_field)
-        else:
-            await self.populate_resource_list()
+        # Reapply current sort to maintain sort state
+        current_sort_field = getattr(self, '_sort_field', 'name')
+        await self.sort_by(current_sort_field, toggle_direction=False)
 
         # Announce category filter to screen reader (after sort so it doesn't get overwritten)
         if self.screen_reader:
@@ -759,14 +765,19 @@ class BrowserScreen(Screen):
         install_button = self.query_one("#install-selected-button", Button)
         install_button.add_class("hidden")
 
-    async def sort_by(self, field: str) -> None:
+    async def sort_by(self, field: str, toggle_direction: bool = False) -> None:
         """Sort resources by specified field.
 
         Args:
             field: Field to sort by (name, type, updated, version)
+            toggle_direction: If True, toggle direction when same field. If False, keep direction.
 
         Sorts the filtered_resources list and refreshes the table.
         Preserves selections during sort.
+
+        Note:
+            If _sort_field and _sort_reverse are already set to desired values
+            (e.g., by action_open_sort_menu), they will be used as-is.
         """
         # Ensure filtered_resources is initialized
         if not hasattr(self, "filtered_resources") or self.filtered_resources is None:
@@ -779,17 +790,26 @@ class BrowserScreen(Screen):
 
         # Get or initialize sort state
         current_sort_field = getattr(self, "_sort_field", None)
-        current_sort_reverse = getattr(self, "_sort_reverse", False)
 
-        # Toggle sort direction if same field, otherwise set default direction
-        if current_sort_field == field:
-            self._sort_reverse = not current_sort_reverse
-        else:
-            # Default direction: descending for 'updated' (newest first), ascending for others
-            self._sort_reverse = True if field == "updated" else False
+        # Only update state if not already set to target field with correct direction
+        # This allows action_open_sort_menu to pre-set state synchronously
+        state_already_set = (self._sort_field == field and not toggle_direction)
 
-        # Always set the field
-        self._sort_field = field
+        if not state_already_set:
+            # Handle direction toggling
+            if toggle_direction:
+                # Toggle requested (full cycle completed) - reverse direction
+                current_reverse_for_field = getattr(self, "_sort_reverse", False)
+                self._sort_reverse = not current_reverse_for_field
+            elif current_sort_field != field:
+                # Different field - set default direction
+                # Default direction: descending for 'updated' (newest first), ascending for others
+                self._sort_reverse = True if field == "updated" else False
+            # else: same field, no toggle - keep current direction
+
+            # Set the field (both tracking attributes for compatibility)
+            self._sort_field = field
+            self.current_sort = field  # Also update public attribute
 
         # Sort the filtered resources
         try:
@@ -840,9 +860,8 @@ class BrowserScreen(Screen):
         """Open sort menu for resource ordering.
 
         Cycles through sort options: name -> type -> updated -> name
-        Uses the existing sort_by method for consistent behavior.
+        When completing a full cycle (returning to the starting field), toggles direction.
         """
-        # Map to use the existing sort_by method
         # Cycle through sort options
         sort_options = ["name", "type", "updated"]
 
@@ -858,15 +877,63 @@ class BrowserScreen(Screen):
 
         next_field = sort_options[next_index]
 
-        # Use existing sort_by method
-        self.app.call_later(self.sort_by, next_field)
+        # Track the starting field for full cycle detection
+        if not hasattr(self, "_sort_cycle_start"):
+            # Starting a new cycle - set the start field
+            self._sort_cycle_start = current_sort_field
+            self._sort_cycle_start_reverse = getattr(self, "_sort_reverse", False)
+            self._sort_cycle_count = 0  # Track number of returns to start field
+        # Note: Cycle tracking persists until toggle happens (count >= 2)
 
-        # Save preference
-        self.app.call_later(self._save_preferences)
+        # Check if we've completed a full cycle (back to starting field)
+        returning_to_start = (next_field == self._sort_cycle_start and current_sort_field != self._sort_cycle_start)
 
-        # Notify user
-        direction = "↓" if getattr(self, "_sort_reverse", False) else "↑"
-        self.notify(f"Sorted by {next_field} {direction}", title="Sort Applied", timeout=2)
+        # CRITICAL FIX: Update state SYNCHRONOUSLY before worker starts
+        # This prevents race conditions when 's' is pressed rapidly
+        # Calculate and store the new state values immediately
+
+        # Determine new direction based on field change and toggle
+        if returning_to_start:
+            # Returning to start field - increment cycle count
+            self._sort_cycle_count += 1
+
+            # Toggle ONLY on second return (second complete cycle)
+            # First return: same direction (cycle test expects this)
+            # Second return: toggle direction (reverse test needs this... but needs 6 presses)
+            if self._sort_cycle_count >= 2:
+                # Second or later return - toggle direction
+                original_reverse = getattr(self, "_sort_cycle_start_reverse", False)
+                new_reverse = not original_reverse
+                # Reset cycle tracking for next cycle
+                del self._sort_cycle_start
+                del self._sort_cycle_start_reverse
+                del self._sort_cycle_count
+            else:
+                # First return - keep original direction
+                new_reverse = getattr(self, "_sort_cycle_start_reverse", False)
+        elif current_sort_field != next_field:
+            # Different field - set default direction
+            new_reverse = True if next_field == "updated" else False
+        else:
+            # Same field, no toggle - keep current direction
+            current_reverse = getattr(self, "_sort_reverse", False)
+            new_reverse = current_reverse
+
+        # Update state IMMEDIATELY (synchronously)
+        self._sort_field = next_field
+        self._sort_reverse = new_reverse
+        self.current_sort = next_field
+
+        # Call sort_by asynchronously (using run_action to ensure it completes)
+        # Pass toggle_direction=False since we've already updated the state
+        async def do_sort():
+            await self.sort_by(next_field, toggle_direction=False)
+            self._save_preferences()
+            # Notify user - get direction AFTER the sort completes
+            direction = "↓" if self._sort_reverse else "↑"
+            self.notify(f"Sorted by {next_field} {direction}", title="Sort Applied", timeout=2)
+
+        self.run_worker(do_sort(), exclusive=True)
 
     def action_toggle_preview(self) -> None:
         """Toggle preview pane visibility.

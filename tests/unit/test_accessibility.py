@@ -42,7 +42,7 @@ from tests.utils.accessibility_helpers import (
 )
 
 # Import fixtures from TUI conftest
-pytest_plugins = ["tests.unit.tui.conftest"]
+# TUI fixtures are now in main conftest.py
 
 
 # ============================================================================
