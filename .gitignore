@@ -87,6 +87,8 @@ secrets.yml
 *~
 *.swp
 *.swo
+*.bak
+*.bak*
 
 # Compiled Python files
 *.pyc
