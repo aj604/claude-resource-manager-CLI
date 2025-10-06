@@ -13,6 +13,7 @@ Test Coverage:
 
 import pytest
 from textual.app import App
+from textual.widgets import Static
 
 from claude_resource_manager.tui.widgets.selection_indicator import SelectionIndicator
 
@@ -622,8 +623,6 @@ class TestSelectionIndicatorInitialization:
     @pytest.mark.asyncio
     async def test_WHEN_widget_created_THEN_inherits_from_static(self):
         """SelectionIndicator is a Textual Static widget."""
-        from textual.widgets import Static
-
         app = SelectionIndicatorTestApp()
 
         async with app.run_test() as pilot:
