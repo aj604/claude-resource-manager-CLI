@@ -448,16 +448,9 @@ jobs:
           key: vhs-${{ env.VHS_VERSION }}-${{ runner.os }}
 
       - name: Run VHS integration tests
-        continue-on-error: true
         run: |
-          # Skip if venv doesn't exist (demos are the real validation)
-          if [ -f .venv/bin/activate ]; then
-            source .venv/bin/activate
-            pytest tests/integration/test_vhs_integration.py -v --tb=short
-          else
-            echo "⚠️  Skipping integration tests - venv not found"
-            echo "ℹ️  Demo generation is the primary validation"
-          fi
+          # Dependencies installed via pip in previous step
+          pytest tests/integration/test_vhs_integration.py -v --tb=short
 
       - name: Upload test results
         if: always()

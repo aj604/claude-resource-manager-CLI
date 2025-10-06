@@ -68,6 +68,7 @@ class BrowserScreen(Screen):
         Binding("space", "toggle_select", "Toggle Select", show=True),
         Binding("tab", "focus_next", "Next Field", show=False),
         Binding("s", "open_sort_menu", "Sort", show=True),
+        Binding("S", "toggle_sort_direction", "Reverse Sort", show=True),
         Binding("p", "toggle_preview", "Toggle Preview", show=True),
         Binding("question_mark", "show_help", "Help", show=True),
         Binding("q", "quit", "Quit", show=True),
@@ -102,9 +103,10 @@ class BrowserScreen(Screen):
 
         # Sorting state
         self.current_sort: str = "name"  # Current sort field (name, type, updated)
-        self._sort_ascending: bool = True  # Sort direction
-        self._sort_field: str = "name"  # Internal sort field tracking
-        self._sort_reverse: bool = False  # Internal sort direction (False = ascending)
+        self._sort_reverse: bool = False  # Sort direction (False = ascending, True = descending)
+
+        # Search state
+        self.current_search_query: str = ""  # Active search query (empty = no search)
 
         # Responsive state
         self._preview_visible: bool = True  # Preview pane visibility
@@ -362,12 +364,12 @@ class BrowserScreen(Screen):
         search_input.focus()
 
     async def action_clear_search(self) -> None:
-        """Clear the search input and handle focus appropriately.
+        """Clear the search input and return focus to table.
 
-        Triggered by the Escape key. Behavior depends on focus and search state:
-        - If search input has focus AND has text → clear text, keep focus
-        - If search input has focus AND empty → blur focus, return to table
-        - If search input doesn't have focus → do nothing (prevents interference)
+        Triggered by the Escape key. If search input has focus:
+        - Clears the search text
+        - Returns focus to the resource table
+        - Resets filtered resources to show all
         """
         search_input = self.query_one("#search-input", Input)
 
@@ -375,14 +377,13 @@ class BrowserScreen(Screen):
         if not search_input.has_focus:
             return
 
-        if search_input.value:
-            # Clear text, keep focus
-            search_input.value = ""
-            await self.perform_search("")
-        else:
-            # Already empty, blur and return to table
-            table = self.query_one("#resource-table", DataTable)
-            table.focus()
+        # Clear search and return to table in one action
+        search_input.value = ""
+        await self.perform_search("")
+
+        # Return focus to table
+        table = self.query_one("#resource-table", DataTable)
+        table.focus()
 
     async def action_toggle_select(self) -> None:
         """Toggle multi-select for the current resource.
@@ -458,6 +459,9 @@ class BrowserScreen(Screen):
         search_error = self.query_one("#search-error", Static)
         search_error.add_class("hidden")
 
+        # Track current search query for status bar
+        self.current_search_query = query
+
         if not query.strip():
             # Empty query - show all resources (with filter applied)
             await self.filter_by_type(self.current_filter)
@@ -483,8 +487,7 @@ class BrowserScreen(Screen):
                 ]
 
             # Reapply current sort to maintain sort state
-            current_sort_field = getattr(self, '_sort_field', 'name')
-            await self.sort_by(current_sort_field, toggle_direction=False)
+            await self.sort_by(self.current_sort, toggle_direction=False)
 
         except Exception as e:
             # Show search error
@@ -522,8 +525,7 @@ class BrowserScreen(Screen):
             ]
 
         # Reapply current sort to maintain sort state
-        current_sort_field = getattr(self, '_sort_field', 'name')
-        await self.sort_by(current_sort_field, toggle_direction=False)
+        await self.sort_by(self.current_sort, toggle_direction=False)
 
         # Announce category filter to screen reader (after sort so it doesn't get overwritten)
         if self.screen_reader:
@@ -630,17 +632,20 @@ class BrowserScreen(Screen):
         total = len(self.resources)
         filtered = len(self.filtered_resources)
 
+        # Check if we have an active search query
+        has_search = bool(self.current_search_query.strip())
+
         if self.current_filter != "all":
             # Show filtered type
             parts.append(f"{filtered} {self.current_filter}s")
-        elif filtered < total:
-            # Show search results count
+        elif has_search:
+            # Show search results count (only when actively searching)
             if filtered == 1:
                 parts.append("1 match")
             else:
                 parts.append(f"{filtered} matches")
         else:
-            # Show total count
+            # Show total count (no search, no filter)
             parts.append(f"{total} resources")
 
         # Selected count
@@ -776,7 +781,7 @@ class BrowserScreen(Screen):
         Preserves selections during sort.
 
         Note:
-            If _sort_field and _sort_reverse are already set to desired values
+            If current_sort and _sort_reverse are already set to desired values
             (e.g., by action_open_sort_menu), they will be used as-is.
         """
         # Ensure filtered_resources is initialized
@@ -788,28 +793,23 @@ class BrowserScreen(Screen):
         if field not in valid_fields:
             field = "name"
 
-        # Get or initialize sort state
-        current_sort_field = getattr(self, "_sort_field", None)
-
         # Only update state if not already set to target field with correct direction
         # This allows action_open_sort_menu to pre-set state synchronously
-        state_already_set = (self._sort_field == field and not toggle_direction)
+        state_already_set = (self.current_sort == field and not toggle_direction)
 
         if not state_already_set:
             # Handle direction toggling
             if toggle_direction:
-                # Toggle requested (full cycle completed) - reverse direction
-                current_reverse_for_field = getattr(self, "_sort_reverse", False)
-                self._sort_reverse = not current_reverse_for_field
-            elif current_sort_field != field:
+                # Toggle requested - reverse direction
+                self._sort_reverse = not self._sort_reverse
+            elif self.current_sort != field:
                 # Different field - set default direction
                 # Default direction: descending for 'updated' (newest first), ascending for others
                 self._sort_reverse = True if field == "updated" else False
             # else: same field, no toggle - keep current direction
 
-            # Set the field (both tracking attributes for compatibility)
-            self._sort_field = field
-            self.current_sort = field  # Also update public attribute
+            # Set the field
+            self.current_sort = field
 
         # Sort the filtered resources
         try:
@@ -857,16 +857,27 @@ class BrowserScreen(Screen):
         self.app.push_screen(help_screen)
 
     def action_open_sort_menu(self) -> None:
-        """Open sort menu for resource ordering.
+        """Cycle through sort options.
 
-        Cycles through sort options: name -> type -> updated -> name
-        When completing a full cycle (returning to the starting field), toggles direction.
+        Cycles through available sort fields in order:
+        name → type → updated → name...
+
+        Each field uses its default direction:
+        - name: ascending (A-Z)
+        - type: ascending (agent, command, hook, mcp, template)
+        - updated: descending (newest first)
+
+        To toggle direction of current field, use Shift+S.
+
+        Technical details:
+        - State updates happen SYNCHRONOUSLY before worker starts (prevents race conditions)
+        - Worker runs with exclusive=True to prevent overlapping sort operations
         """
-        # Cycle through sort options
+        # Available sort fields
         sort_options = ["name", "type", "updated"]
 
-        # Get current sort from existing state
-        current_sort_field = getattr(self, "_sort_field", "name")
+        # Get current sort field
+        current_sort_field = self.current_sort
 
         # Find next option
         try:
@@ -877,61 +888,51 @@ class BrowserScreen(Screen):
 
         next_field = sort_options[next_index]
 
-        # Track the starting field for full cycle detection
-        if not hasattr(self, "_sort_cycle_start"):
-            # Starting a new cycle - set the start field
-            self._sort_cycle_start = current_sort_field
-            self._sort_cycle_start_reverse = getattr(self, "_sort_reverse", False)
-            self._sort_cycle_count = 0  # Track number of returns to start field
-        # Note: Cycle tracking persists until toggle happens (count >= 2)
+        # Set default direction for each field
+        # name and type: ascending (False), updated: descending (True)
+        new_reverse = True if next_field == "updated" else False
 
-        # Check if we've completed a full cycle (back to starting field)
-        returning_to_start = (next_field == self._sort_cycle_start and current_sort_field != self._sort_cycle_start)
-
-        # CRITICAL FIX: Update state SYNCHRONOUSLY before worker starts
-        # This prevents race conditions when 's' is pressed rapidly
-        # Calculate and store the new state values immediately
-
-        # Determine new direction based on field change and toggle
-        if returning_to_start:
-            # Returning to start field - increment cycle count
-            self._sort_cycle_count += 1
-
-            # Toggle ONLY on second return (second complete cycle)
-            # First return: same direction (cycle test expects this)
-            # Second return: toggle direction (reverse test needs this... but needs 6 presses)
-            if self._sort_cycle_count >= 2:
-                # Second or later return - toggle direction
-                original_reverse = getattr(self, "_sort_cycle_start_reverse", False)
-                new_reverse = not original_reverse
-                # Reset cycle tracking for next cycle
-                del self._sort_cycle_start
-                del self._sort_cycle_start_reverse
-                del self._sort_cycle_count
-            else:
-                # First return - keep original direction
-                new_reverse = getattr(self, "_sort_cycle_start_reverse", False)
-        elif current_sort_field != next_field:
-            # Different field - set default direction
-            new_reverse = True if next_field == "updated" else False
-        else:
-            # Same field, no toggle - keep current direction
-            current_reverse = getattr(self, "_sort_reverse", False)
-            new_reverse = current_reverse
-
-        # Update state IMMEDIATELY (synchronously)
-        self._sort_field = next_field
-        self._sort_reverse = new_reverse
+        # Update state IMMEDIATELY (synchronously) - prevents race conditions
         self.current_sort = next_field
+        self._sort_reverse = new_reverse
 
-        # Call sort_by asynchronously (using run_action to ensure it completes)
-        # Pass toggle_direction=False since we've already updated the state
+        # Call sort_by asynchronously with exclusive worker
         async def do_sort():
             await self.sort_by(next_field, toggle_direction=False)
             self._save_preferences()
-            # Notify user - get direction AFTER the sort completes
+            # Notify user with direction indicator
             direction = "↓" if self._sort_reverse else "↑"
             self.notify(f"Sorted by {next_field} {direction}", title="Sort Applied", timeout=2)
+
+        self.run_worker(do_sort(), exclusive=True)
+
+    def action_toggle_sort_direction(self) -> None:
+        """Toggle sort direction for current field.
+
+        Reverses the sort order of the currently active sort field.
+        Use 's' to cycle through fields, 'S' (Shift+S) to reverse direction.
+
+        Technical details:
+        - State updates happen SYNCHRONOUSLY before worker starts (prevents race conditions)
+        - Worker runs with exclusive=True to prevent overlapping sort operations
+        """
+        # Toggle the direction
+        new_reverse = not self._sort_reverse
+
+        # Update state IMMEDIATELY (synchronously) - prevents race conditions
+        self._sort_reverse = new_reverse
+
+        # Re-sort with new direction
+        async def do_sort():
+            await self.sort_by(self.current_sort, toggle_direction=False)
+            self._save_preferences()
+            # Notify user with direction indicator
+            direction = "↓" if self._sort_reverse else "↑"
+            self.notify(
+                f"Sorted by {self.current_sort} {direction}",
+                title="Direction Toggled",
+                timeout=2
+            )
 
         self.run_worker(do_sort(), exclusive=True)
 
@@ -1026,13 +1027,9 @@ class BrowserScreen(Screen):
                 with open(config_path) as f:
                     prefs = json.load(f)
 
-                # Load sort preferences (use existing field names)
-                self._sort_field = prefs.get("sort_field", "name")
-                self._sort_reverse = not prefs.get("sort_ascending", True)  # Reverse ascending flag
-
-                # Load current_sort for new code
+                # Load sort preferences
                 self.current_sort = prefs.get("sort_field", "name")
-                self._sort_ascending = prefs.get("sort_ascending", True)
+                self._sort_reverse = not prefs.get("sort_ascending", True)  # Reverse ascending flag
 
                 self._preview_visible = prefs.get("preview_visible", True)
         except Exception:
@@ -1055,13 +1052,10 @@ class BrowserScreen(Screen):
 
             config_path = config_dir / "settings.json"
 
-            # Use existing _sort_field and _sort_reverse attributes
-            sort_field = getattr(self, "_sort_field", "name")
-            sort_reverse = getattr(self, "_sort_reverse", False)
-
+            # Save current sort state
             prefs = {
-                "sort_field": sort_field,
-                "sort_ascending": not sort_reverse,  # Inverse of reverse
+                "sort_field": self.current_sort,
+                "sort_ascending": not self._sort_reverse,  # Inverse of reverse
                 "preview_visible": self._preview_visible,
             }
 
