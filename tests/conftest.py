@@ -354,7 +354,41 @@ def sample_resources_list():
             "description": "Security audit specialist",
             "version": "v1.0.0",
         },
+        {
+            "id": "test-generator",
+            "type": "agent",
+            "name": "Test Generator",
+            "description": "Generates comprehensive test suites",
+            "version": "v1.0.0",
+        },
+        {
+            "id": "git-commit",
+            "type": "command",
+            "name": "Git Commit",
+            "description": "Creates semantic git commits",
+            "version": "v1.0.0",
+        },
     ]
+
+
+@pytest.fixture
+def sample_resource():
+    """Single sample resource with full metadata for testing."""
+    return {
+        "id": "architect",
+        "type": "agent",
+        "name": "Architect",
+        "description": "System architecture design specialist",
+        "version": "v1.0.0",
+        "metadata": {
+            "tools": ["Read", "Write", "Edit"],
+            "model": "opus",
+        },
+        "dependencies": {
+            "required": ["security-reviewer"],
+            "recommended": ["test-generator"],
+        },
+    }
 
 
 @pytest.fixture

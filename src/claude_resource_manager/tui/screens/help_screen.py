@@ -247,10 +247,8 @@ class HelpScreen(ModalScreen):
             self._build_section(
                 "Sorting & Ordering",
                 [
-                    ("s", "Open sort menu"),
-                    ("1", "Sort by name (toggle A-Z / Z-A)"),
-                    ("2", "Sort by type"),
-                    ("3", "Sort by date updated"),
+                    ("s", "Cycle sort fields (name → type → updated)"),
+                    ("S", "Toggle sort direction (↑ ascending / ↓ descending)"),
                 ],
             )
         )
