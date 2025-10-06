@@ -15,11 +15,11 @@ Test Coverage:
 All tests use proper Textual app context and async/await patterns.
 """
 
-import pytest
-from unittest.mock import Mock, AsyncMock, patch
-from textual.app import App
-from textual.widgets import DataTable, Input, Static, Button
+from unittest.mock import AsyncMock, Mock
 
+import pytest
+from textual.app import App
+from textual.widgets import Button, DataTable, Input
 
 # Import the BrowserScreen
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
@@ -36,10 +36,7 @@ class BrowserScreenTestApp(App):
     def on_mount(self) -> None:
         """Push BrowserScreen on mount."""
         self.push_screen(
-            BrowserScreen(
-                catalog_loader=self.catalog_loader,
-                search_engine=self.search_engine
-            )
+            BrowserScreen(catalog_loader=self.catalog_loader, search_engine=self.search_engine)
         )
 
 
@@ -198,7 +195,9 @@ class TestBrowserScreenKeyboardNavigation:
     """Test keyboard navigation in browser screen."""
 
     @pytest.mark.asyncio
-    async def test_arrow_down_moves_selection_down(self, mock_catalog_loader, sample_resources_list):
+    async def test_arrow_down_moves_selection_down(
+        self, mock_catalog_loader, sample_resources_list
+    ):
         """Down arrow key moves selection to next resource."""
         mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
         app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
@@ -339,7 +338,9 @@ class TestBrowserScreenKeyboardNavigation:
             table.focus()
             await pilot.pause()
 
-            current_id = screen.filtered_resources[0].get("id", screen.filtered_resources[0].get("name"))
+            current_id = screen.filtered_resources[0].get(
+                "id", screen.filtered_resources[0].get("name")
+            )
 
             # Press space to select
             await pilot.press("space")
@@ -365,7 +366,9 @@ class TestBrowserScreenKeyboardNavigation:
             table.focus()
             await pilot.pause()
 
-            current_id = screen.filtered_resources[0].get("id", screen.filtered_resources[0].get("name"))
+            current_id = screen.filtered_resources[0].get(
+                "id", screen.filtered_resources[0].get("name")
+            )
 
             # Select first
             await pilot.press("space")
@@ -405,8 +408,7 @@ class TestBrowserScreenSearchFunctionality:
     async def test_search_input_triggers_filter(self, mock_catalog_loader, mock_search_engine):
         """Typing in search box filters resource list."""
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -424,11 +426,16 @@ class TestBrowserScreenSearchFunctionality:
     async def test_search_updates_resource_list(self, mock_catalog_loader, mock_search_engine):
         """Search results update the displayed resource list."""
         mock_search_engine.search.return_value = [
-            {"id": "architect", "name": "Architect", "type": "agent", "description": "Test", "version": "v1.0.0"}
+            {
+                "id": "architect",
+                "name": "Architect",
+                "type": "agent",
+                "description": "Test",
+                "version": "v1.0.0",
+            }
         ]
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -441,12 +448,13 @@ class TestBrowserScreenSearchFunctionality:
             assert resource_list.row_count == 1
 
     @pytest.mark.asyncio
-    async def test_search_with_no_results_shows_message(self, mock_catalog_loader, mock_search_engine):
+    async def test_search_with_no_results_shows_message(
+        self, mock_catalog_loader, mock_search_engine
+    ):
         """Search with no results shows 'No matches found' message."""
         mock_search_engine.search.return_value = []
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -468,8 +476,7 @@ class TestBrowserScreenSearchFunctionality:
     async def test_search_is_case_insensitive(self, mock_catalog_loader, mock_search_engine):
         """Search treats uppercase and lowercase as equivalent."""
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -484,7 +491,9 @@ class TestBrowserScreenSearchFunctionality:
             assert call_args[0][0] == "ARCHITECT"
 
     @pytest.mark.asyncio
-    async def test_search_shows_fuzzy_match_indicator(self, mock_catalog_loader, mock_search_engine):
+    async def test_search_shows_fuzzy_match_indicator(
+        self, mock_catalog_loader, mock_search_engine
+    ):
         """Search results show fuzzy match score indicator."""
         mock_search_engine.search.return_value = [
             {
@@ -493,12 +502,11 @@ class TestBrowserScreenSearchFunctionality:
                 "type": "agent",
                 "description": "Test",
                 "version": "v1.0.0",
-                "score": 85
+                "score": 85,
             }
         ]
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -633,8 +641,7 @@ class TestBrowserScreenCategoryFiltering:
     async def test_filter_persists_through_search(self, mock_catalog_loader, mock_search_engine):
         """Category filter remains active when searching."""
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -786,7 +793,9 @@ class TestBrowserScreenStatusBar:
             assert f"{len(sample_resources_list)} resources" in status_text
 
     @pytest.mark.asyncio
-    async def test_status_bar_shows_filtered_count(self, mock_catalog_loader, sample_resources_list):
+    async def test_status_bar_shows_filtered_count(
+        self, mock_catalog_loader, sample_resources_list
+    ):
         """Status bar shows filtered count when category filter active."""
         mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
         app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
@@ -802,14 +811,21 @@ class TestBrowserScreenStatusBar:
             assert "agent" in status_text
 
     @pytest.mark.asyncio
-    async def test_status_bar_shows_search_results_count(self, mock_catalog_loader, mock_search_engine):
+    async def test_status_bar_shows_search_results_count(
+        self, mock_catalog_loader, mock_search_engine
+    ):
         """Status bar shows number of search results."""
         mock_search_engine.search.return_value = [
-            {"id": "test", "name": "Test", "type": "agent", "description": "Test", "version": "v1.0.0"}
+            {
+                "id": "test",
+                "name": "Test",
+                "type": "agent",
+                "description": "Test",
+                "version": "v1.0.0",
+            }
         ]
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -871,9 +887,7 @@ class TestBrowserScreenErrorHandling:
     async def test_handles_catalog_load_failure(self):
         """Browser gracefully handles catalog loading errors."""
         error_loader = Mock()
-        error_loader.load_resources = AsyncMock(
-            side_effect=Exception("Network error")
-        )
+        error_loader.load_resources = AsyncMock(side_effect=Exception("Network error"))
         app = BrowserScreenTestApp(catalog_loader=error_loader)
 
         async with app.run_test() as pilot:
@@ -889,10 +903,7 @@ class TestBrowserScreenErrorHandling:
         """Browser handles search engine errors gracefully."""
         error_search = Mock()
         error_search.search.side_effect = Exception("Search index corrupted")
-        app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=error_search
-        )
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader, search_engine=error_search)
 
         async with app.run_test() as pilot:
             await pilot.pause()
@@ -940,7 +951,9 @@ class TestBrowserScreenPerformance:
 
     @pytest.mark.asyncio
     @pytest.mark.benchmark
-    async def test_loads_331_resources_quickly(self, mock_catalog_loader, mock_catalog_331_resources):
+    async def test_loads_331_resources_quickly(
+        self, mock_catalog_loader, mock_catalog_331_resources
+    ):
         """Browser loads full catalog (331 resources) within performance budget."""
         import time
 
@@ -966,8 +979,7 @@ class TestBrowserScreenPerformance:
 
         mock_catalog_loader.load_resources = AsyncMock(return_value=mock_catalog_331_resources)
         app = BrowserScreenTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -981,7 +993,9 @@ class TestBrowserScreenPerformance:
             assert elapsed < 0.05
 
     @pytest.mark.asyncio
-    async def test_scrolling_large_list_is_smooth(self, mock_catalog_loader, mock_catalog_331_resources):
+    async def test_scrolling_large_list_is_smooth(
+        self, mock_catalog_loader, mock_catalog_331_resources
+    ):
         """Scrolling through large resource list doesn't lag."""
         mock_catalog_loader.load_resources = AsyncMock(return_value=mock_catalog_331_resources)
         app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)

@@ -241,7 +241,9 @@ class CategoryTree:
             return node.get_all_resources()
         return []
 
-    def filter_by_category_and_type(self, category: str, resource_type: str) -> list[dict[str, Any]]:
+    def filter_by_category_and_type(
+        self, category: str, resource_type: str
+    ) -> list[dict[str, Any]]:
         """Filter resources by category and type.
 
         Args:

@@ -17,11 +17,12 @@ Test Coverage:
 Tests verify the SearchScreen implementation with Textual app context.
 """
 
-import pytest
 import asyncio
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import patch
+
+import pytest
 from textual.app import App
-from textual.widgets import Input, ListView, Static
+from textual.widgets import Input, ListView
 
 from claude_resource_manager.tui.screens.search_screen import SearchScreen
 
@@ -237,9 +238,7 @@ class TestSearchResultDisplay:
             app.push_screen(screen)
             await pilot.pause()
 
-            results = [
-                {"id": "architect", "name": "Architect", "type": "agent", "score": 95}
-            ]
+            results = [{"id": "architect", "name": "Architect", "type": "agent", "score": 95}]
             screen.display_results(results)
             await pilot.pause()
 
@@ -261,9 +260,7 @@ class TestSearchResultDisplay:
             app.push_screen(screen)
             await pilot.pause()
 
-            results = [
-                {"id": "architect", "name": "Architect", "type": "agent", "score": 95}
-            ]
+            results = [{"id": "architect", "name": "Architect", "type": "agent", "score": 95}]
             screen.display_results(results)
             await pilot.pause()
 
@@ -336,9 +333,7 @@ class TestSearchResultDisplay:
             await pilot.pause()
 
             screen.current_query = "arch"
-            results = [
-                {"id": "architect", "name": "Architect", "type": "agent", "score": 95}
-            ]
+            results = [{"id": "architect", "name": "Architect", "type": "agent", "score": 95}]
             screen.display_results(results)
             await pilot.pause()
 
@@ -488,13 +483,11 @@ class TestSearchNavigation:
             app.push_screen(screen)
             await pilot.pause()
 
-            results = [
-                {"id": "architect", "name": "Architect", "type": "agent", "score": 95}
-            ]
+            results = [{"id": "architect", "name": "Architect", "type": "agent", "score": 95}]
             screen.display_results(results)
             await pilot.pause()
 
-            with patch.object(screen, 'dismiss') as mock_dismiss:
+            with patch.object(screen, "dismiss") as mock_dismiss:
                 await screen.action_select_result()
 
                 # Should return selected resource
@@ -509,7 +502,7 @@ class TestSearchNavigation:
             app.push_screen(screen)
             await pilot.pause()
 
-            with patch.object(screen, 'dismiss') as mock_dismiss:
+            with patch.object(screen, "dismiss") as mock_dismiss:
                 await screen.action_cancel()
 
                 # Should return None
@@ -524,13 +517,11 @@ class TestSearchNavigation:
             app.push_screen(screen)
             await pilot.pause()
 
-            results = [
-                {"id": "architect", "name": "Architect", "type": "agent", "score": 95}
-            ]
+            results = [{"id": "architect", "name": "Architect", "type": "agent", "score": 95}]
             screen.display_results(results)
             await pilot.pause()
 
-            with patch.object(screen, 'dismiss') as mock_dismiss:
+            with patch.object(screen, "dismiss") as mock_dismiss:
                 # Simulate click on first result
                 await screen.on_result_clicked(0)
 

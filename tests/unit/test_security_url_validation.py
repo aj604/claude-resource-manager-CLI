@@ -4,8 +4,8 @@ These tests ensure HTTPS-only and domain whitelist enforcement.
 All URLs must be HTTPS from trusted domains only.
 """
 
+
 import pytest
-from urllib.parse import urlparse
 
 from claude_resource_manager.utils.security import SecurityError, validate_download_url
 
@@ -13,9 +13,7 @@ from claude_resource_manager.utils.security import SecurityError, validate_downl
 class TestURLSecurityControls:
     """Critical security tests for URL validation."""
 
-    def test_WHEN_https_url_THEN_allowed(
-        self, safe_github_urls: list
-    ):
+    def test_WHEN_https_url_THEN_allowed(self, safe_github_urls: list):
         """
         GIVEN: Valid HTTPS URLs from trusted domains
         WHEN: URL validation is performed
@@ -27,9 +25,7 @@ class TestURLSecurityControls:
             assert result == url
             assert result.startswith("https://")
 
-    def test_WHEN_http_url_THEN_rejected(
-        self, unsafe_urls: list
-    ):
+    def test_WHEN_http_url_THEN_rejected(self, unsafe_urls: list):
         """
         GIVEN: HTTP URLs (not HTTPS)
         WHEN: URL validation is performed

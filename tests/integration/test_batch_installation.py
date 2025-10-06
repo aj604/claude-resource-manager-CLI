@@ -18,19 +18,16 @@ Author: TestMaster (TDD Phase)
 
 import asyncio
 import time
-from pathlib import Path
-from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from unittest.mock import AsyncMock, Mock, patch, call
 
 from claude_resource_manager.core.installer import AsyncInstaller, InstallResult
-from claude_resource_manager.core.dependency_resolver import DependencyResolver
-
 
 # ============================================================================
 # Batch Workflow Tests (7 tests)
 # ============================================================================
+
 
 class TestBatchWorkflow:
     """Test batch installation workflow and orchestration."""
@@ -48,22 +45,28 @@ class TestBatchWorkflow:
             {
                 "id": "agent-1",
                 "type": "agent",
-                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"},
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"
+                },
             },
             {
                 "id": "agent-2",
                 "type": "agent",
-                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-2.md"},
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-2.md"
+                },
             },
             {
                 "id": "agent-3",
                 "type": "agent",
-                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-3.md"},
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-3.md"
+                },
             },
         ]
 
         # Execute batch install
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install(resources)
 
         # Verify
@@ -80,8 +83,13 @@ class TestBatchWorkflow:
         installer = AsyncInstaller(temp_install_dir)
 
         resources = [
-            {"id": f"agent-{i}", "type": "agent",
-             "source": {"url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"}}
+            {
+                "id": f"agent-{i}",
+                "type": "agent",
+                "source": {
+                    "url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"
+                },
+            }
             for i in range(5)
         ]
 
@@ -89,15 +97,17 @@ class TestBatchWorkflow:
 
         async def progress_callback(resource_id: str, current: int, total: int, status: str):
             """Track progress updates."""
-            progress_updates.append({
-                "resource_id": resource_id,
-                "current": current,
-                "total": total,
-                "status": status,
-            })
+            progress_updates.append(
+                {
+                    "resource_id": resource_id,
+                    "current": current,
+                    "total": total,
+                    "status": status,
+                }
+            )
 
         # Execute with progress tracking
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             await installer.batch_install(resources, progress_callback=progress_callback)
 
         # Verify progress updates
@@ -117,15 +127,28 @@ class TestBatchWorkflow:
 
         # Create one failing resource (bad URL)
         resources = [
-            {"id": "good-1", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/good-1.md"}},
-            {"id": "bad", "type": "agent",
-             "source": {"url": "http://invalid.com/bad.md"}},  # HTTP not HTTPS - will fail
-            {"id": "good-2", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/good-2.md"}},
+            {
+                "id": "good-1",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/good-1.md"
+                },
+            },
+            {
+                "id": "bad",
+                "type": "agent",
+                "source": {"url": "http://invalid.com/bad.md"},
+            },  # HTTP not HTTPS - will fail
+            {
+                "id": "good-2",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/good-2.md"
+                },
+            },
         ]
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install(resources)
 
         # Verify individual tracking
@@ -136,33 +159,49 @@ class TestBatchWorkflow:
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_WHEN_partial_failure_THEN_continues_installation(
-        self, temp_install_dir
-    ):
+    async def test_WHEN_partial_failure_THEN_continues_installation(self, temp_install_dir):
         """Batch install should continue even if some resources fail."""
         installer = AsyncInstaller(temp_install_dir)
 
         # Mix of good and bad resources
         resources = [
-            {"id": "good-1", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/good-1.md"}},
-            {"id": "bad-url", "type": "agent",
-             "source": {"url": "http://http-not-https.com/fail.md"}},
-            {"id": "good-2", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/good-2.md"}},
-            {"id": "bad-path", "type": "agent",
-             "install_path": "../../../etc/passwd",  # Path traversal - will fail
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/bad.md"}},
+            {
+                "id": "good-1",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/good-1.md"
+                },
+            },
+            {
+                "id": "bad-url",
+                "type": "agent",
+                "source": {"url": "http://http-not-https.com/fail.md"},
+            },
+            {
+                "id": "good-2",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/good-2.md"
+                },
+            },
+            {
+                "id": "bad-path",
+                "type": "agent",
+                "install_path": "../../../etc/passwd",  # Path traversal - will fail
+                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/bad.md"},
+            },
         ]
 
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(return_value=AsyncMock(
-            status_code=200,
-            content=b"# Test",
-            raise_for_status=Mock(),
-        ))
+        mock_client.get = AsyncMock(
+            return_value=AsyncMock(
+                status_code=200,
+                content=b"# Test",
+                raise_for_status=Mock(),
+            )
+        )
 
-        with patch('httpx.AsyncClient', return_value=mock_client):
+        with patch("httpx.AsyncClient", return_value=mock_client):
             results = await installer.batch_install(resources)
 
         # Should complete all attempts
@@ -173,25 +212,29 @@ class TestBatchWorkflow:
         failures = [r for r in results if not r.success]
 
         assert len(successes) == 2  # good-1 and good-2
-        assert len(failures) == 2   # bad-url and bad-path
+        assert len(failures) == 2  # bad-url and bad-path
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_WHEN_batch_error_THEN_rollback_option(
-        self, temp_install_dir, mock_httpx_client
-    ):
+    async def test_WHEN_batch_error_THEN_rollback_option(self, temp_install_dir, mock_httpx_client):
         """Optional: Support rollback on critical failure."""
         installer = AsyncInstaller(temp_install_dir)
 
         resources = [
-            {"id": "resource-1", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/r1.md"}},
-            {"id": "resource-2", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/r2.md"}},
+            {
+                "id": "resource-1",
+                "type": "agent",
+                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/r1.md"},
+            },
+            {
+                "id": "resource-2",
+                "type": "agent",
+                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/r2.md"},
+            },
         ]
 
         # Install successfully first
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install(resources)
             assert all(r.success for r in results)
 
@@ -214,12 +257,17 @@ class TestBatchWorkflow:
         installer = AsyncInstaller(temp_install_dir)
 
         resources = [
-            {"id": f"agent-{i}", "type": "agent",
-             "source": {"url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"}}
+            {
+                "id": f"agent-{i}",
+                "type": "agent",
+                "source": {
+                    "url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"
+                },
+            }
             for i in range(10)
         ]
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             summary = await installer.batch_install_with_summary(resources)
 
         # Verify summary structure
@@ -240,15 +288,30 @@ class TestBatchWorkflow:
 
         # Include duplicates
         resources = [
-            {"id": "agent-1", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"}},
-            {"id": "agent-2", "type": "agent",
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-2.md"}},
-            {"id": "agent-1", "type": "agent",  # Duplicate
-             "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"}},
+            {
+                "id": "agent-1",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"
+                },
+            },
+            {
+                "id": "agent-2",
+                "type": "agent",
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-2.md"
+                },
+            },
+            {
+                "id": "agent-1",
+                "type": "agent",  # Duplicate
+                "source": {
+                    "url": "https://raw.githubusercontent.com/test/repo/main/agents/agent-1.md"
+                },
+            },
         ]
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install(resources)
 
         # Should only install 2 unique resources
@@ -261,22 +324,27 @@ class TestBatchWorkflow:
 # Dependency Handling Tests (5 tests)
 # ============================================================================
 
+
 class TestBatchDependencies:
     """Test dependency resolution in batch installation context."""
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_WHEN_batch_has_deps_THEN_installs_all(
-        self, temp_install_dir, mock_httpx_client
-    ):
+    async def test_WHEN_batch_has_deps_THEN_installs_all(self, temp_install_dir, mock_httpx_client):
         """Batch install should resolve and install all dependencies."""
         installer = AsyncInstaller(temp_install_dir)
 
         # Resources with dependencies
-        dep1 = {"id": "dep-1", "type": "agent",
-                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/dep-1.md"}}
-        dep2 = {"id": "dep-2", "type": "agent",
-                "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/dep-2.md"}}
+        dep1 = {
+            "id": "dep-1",
+            "type": "agent",
+            "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/dep-1.md"},
+        }
+        dep2 = {
+            "id": "dep-2",
+            "type": "agent",
+            "source": {"url": "https://raw.githubusercontent.com/test/repo/main/agents/dep-2.md"},
+        }
 
         main = {
             "id": "main-agent",
@@ -289,7 +357,7 @@ class TestBatchDependencies:
         installer.register_resource(dep1)
         installer.register_resource(dep2)
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install([main])
 
         # Should install main + 2 dependencies = 3 total
@@ -328,7 +396,7 @@ class TestBatchDependencies:
 
         installer.register_resource(shared_dep)
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install([resource1, resource2])
 
         # Should install: resource-1, resource-2, shared-dep (only once) = 3 total
@@ -340,9 +408,7 @@ class TestBatchDependencies:
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_WHEN_batch_deps_THEN_correct_order(
-        self, temp_install_dir, mock_httpx_client
-    ):
+    async def test_WHEN_batch_deps_THEN_correct_order(self, temp_install_dir, mock_httpx_client):
         """Dependencies should be installed in topological order."""
         installer = AsyncInstaller(temp_install_dir)
 
@@ -413,7 +479,7 @@ class TestBatchDependencies:
 
         installer.register_resource(dep1)
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             results = await installer.batch_install([main], skip_installed=True)
 
         # Should install main but skip dep-1
@@ -425,9 +491,7 @@ class TestBatchDependencies:
 
     @pytest.mark.asyncio
     @pytest.mark.integration
-    async def test_WHEN_circular_deps_in_batch_THEN_detects_error(
-        self, temp_install_dir
-    ):
+    async def test_WHEN_circular_deps_in_batch_THEN_detects_error(self, temp_install_dir):
         """Circular dependencies should be detected and reported."""
         installer = AsyncInstaller(temp_install_dir)
 
@@ -468,22 +532,26 @@ class TestBatchDependencies:
 # Performance Tests (3 tests)
 # ============================================================================
 
+
 class TestBatchPerformance:
     """Test performance and efficiency of batch operations."""
 
     @pytest.mark.asyncio
     @pytest.mark.integration
     @pytest.mark.benchmark
-    async def test_WHEN_parallel_downloads_THEN_faster_than_serial(
-        self, temp_install_dir
-    ):
+    async def test_WHEN_parallel_downloads_THEN_faster_than_serial(self, temp_install_dir):
         """Parallel batch install should be faster than serial."""
         installer = AsyncInstaller(temp_install_dir)
 
         # 10 resources
         resources = [
-            {"id": f"agent-{i}", "type": "agent",
-             "source": {"url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"}}
+            {
+                "id": f"agent-{i}",
+                "type": "agent",
+                "source": {
+                    "url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"
+                },
+            }
             for i in range(10)
         ]
 
@@ -501,13 +569,13 @@ class TestBatchPerformance:
 
         # Parallel install
         start = time.time()
-        with patch('httpx.AsyncClient', return_value=mock_client):
+        with patch("httpx.AsyncClient", return_value=mock_client):
             await installer.batch_install(resources, parallel=True)
         parallel_duration = time.time() - start
 
         # Serial install
         start = time.time()
-        with patch('httpx.AsyncClient', return_value=mock_client):
+        with patch("httpx.AsyncClient", return_value=mock_client):
             await installer.batch_install(resources, parallel=False)
         serial_duration = time.time() - start
 
@@ -526,13 +594,18 @@ class TestBatchPerformance:
         installer = AsyncInstaller(temp_install_dir)
 
         resources = [
-            {"id": f"agent-{i}", "type": "agent",
-             "source": {"url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"}}
+            {
+                "id": f"agent-{i}",
+                "type": "agent",
+                "source": {
+                    "url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"
+                },
+            }
             for i in range(10)
         ]
 
         start = time.time()
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             await installer.batch_install(resources)
         duration = time.time() - start
 
@@ -552,14 +625,19 @@ class TestBatchPerformance:
 
         # 50 resources
         resources = [
-            {"id": f"agent-{i}", "type": "agent",
-             "source": {"url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"}}
+            {
+                "id": f"agent-{i}",
+                "type": "agent",
+                "source": {
+                    "url": f"https://raw.githubusercontent.com/test/repo/main/agents/agent-{i}.md"
+                },
+            }
             for i in range(50)
         ]
 
         tracemalloc.start()
 
-        with patch('httpx.AsyncClient', return_value=mock_httpx_client):
+        with patch("httpx.AsyncClient", return_value=mock_httpx_client):
             await installer.batch_install(resources)
 
         current, peak = tracemalloc.get_traced_memory()

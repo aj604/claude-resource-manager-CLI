@@ -3,7 +3,8 @@
 These tests follow TDD - they will FAIL until models are implemented.
 """
 
-from typing import Any, Dict, List
+from typing import Any, Dict
+
 import pytest
 from pydantic import ValidationError
 
@@ -11,9 +12,7 @@ from pydantic import ValidationError
 class TestCatalogModel:
     """Tests for Catalog Pydantic model."""
 
-    def test_WHEN_valid_catalog_THEN_model_created(
-        self, sample_catalog_index: Dict[str, Any]
-    ):
+    def test_WHEN_valid_catalog_THEN_model_created(self, sample_catalog_index: Dict[str, Any]):
         """
         GIVEN: Valid catalog index data
         WHEN: Catalog model is created

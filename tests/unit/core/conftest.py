@@ -1,21 +1,16 @@
-"""Conftest for installer tests - provides httpx mocking."""
+"""Conftest for core tests - provides httpx mocking for installer tests."""
 
-import pytest
 from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
 
-@pytest.fixture(autouse=True)
-def mock_httpx_for_installer(request):
-    """Auto-mock httpx.AsyncClient for all installer tests unless explicitly patched."""
-    # Check if test already has httpx mocking (by checking for patch in test)
-    if 'httpx' in str(request.function):
-        # If the test manually patches httpx, skip auto-mocking
-        for marker in request.node.iter_markers():
-            if hasattr(marker, 'args') and 'httpx' in str(marker.args):
-                yield
-                return
 
-    # Auto-mock httpx for tests that don't manually mock it
+@pytest.fixture(scope="function")
+def mock_httpx_for_core_tests():
+    """Mock httpx.AsyncClient for installer tests.
+
+    Use this fixture explicitly in tests that need httpx mocking.
+    """
     with patch("httpx.AsyncClient") as mock_client:
         mock_response = AsyncMock()
         mock_response.status_code = 200

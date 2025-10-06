@@ -5,10 +5,11 @@ Tests will FAIL until Installer is implemented.
 """
 
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 from unittest.mock import AsyncMock, Mock, patch
-import pytest
+
 import httpx
+import pytest
 
 
 class TestAsyncInstaller:
@@ -16,7 +17,7 @@ class TestAsyncInstaller:
 
     @pytest.mark.asyncio
     async def test_WHEN_resource_installed_THEN_file_created(
-        self, temp_install_dir: Path, sample_resource_data: Dict[str, Any]
+        self, temp_install_dir: Path, sample_resource_data: Dict[str, Any], mock_httpx_for_core_tests
     ):
         """
         GIVEN: Valid resource to install
@@ -233,6 +234,7 @@ class TestAsyncInstaller:
         THEN: No race conditions, all succeed
         """
         import asyncio
+
         from claude_resource_manager.core.installer import AsyncInstaller
 
         installer = AsyncInstaller(base_path=temp_install_dir)
@@ -260,9 +262,7 @@ class TestAsyncInstaller:
             assert len(all_files) == len(resources)
 
     @pytest.mark.asyncio
-    async def test_WHEN_dependency_chain_THEN_topological_order(
-        self, temp_install_dir: Path
-    ):
+    async def test_WHEN_dependency_chain_THEN_topological_order(self, temp_install_dir: Path):
         """
         GIVEN: Resources with dependency chain
         WHEN: Installer installs with dependencies
@@ -424,6 +424,7 @@ class TestAsyncInstaller:
         THEN: Checksum is verified for integrity
         """
         import hashlib
+
         from claude_resource_manager.core.installer import AsyncInstaller
 
         installer = AsyncInstaller(base_path=temp_install_dir)

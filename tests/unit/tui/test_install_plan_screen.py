@@ -18,10 +18,10 @@ Test Coverage:
 These tests verify the behavior of InstallPlanScreen implementation.
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
-from textual.widgets import Tree, Button, Static, ProgressBar
-from textual.pilot import Pilot
+from textual.widgets import ProgressBar, Tree
 
 
 class TestInstallPlanScreenInitialization:
@@ -33,6 +33,7 @@ class TestInstallPlanScreenInitialization:
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
+
         screen = InstallPlanScreen(resource_id="architect")
         assert screen.resource_id == "architect"
 
@@ -41,10 +42,11 @@ class TestInstallPlanScreenInitialization:
         self, mock_dependency_resolver, dependency_tree_data
     ):
         """Install plan loads dependency tree on mount."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
 
@@ -52,8 +54,7 @@ class TestInstallPlanScreenInitialization:
             async def on_mount(self):
                 await self.push_screen(
                     InstallPlanScreen(
-                        resource_id="architect",
-                        dependency_resolver=mock_dependency_resolver
+                        resource_id="architect", dependency_resolver=mock_dependency_resolver
                     )
                 )
 
@@ -64,10 +65,11 @@ class TestInstallPlanScreenInitialization:
     @pytest.mark.asyncio
     async def test_install_plan_has_confirm_button(self):
         """Install plan screen has confirm installation button."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -83,10 +85,11 @@ class TestInstallPlanScreenInitialization:
     @pytest.mark.asyncio
     async def test_install_plan_has_cancel_button(self):
         """Install plan screen has cancel button."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -102,10 +105,11 @@ class TestInstallPlanScreenInitialization:
     @pytest.mark.asyncio
     async def test_install_plan_has_dependency_tree(self):
         """Install plan screen displays dependency tree."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -124,10 +128,11 @@ class TestInstallPlanTreeVisualization:
     @pytest.mark.asyncio
     async def test_tree_shows_root_resource(self, dependency_tree_data):
         """Dependency tree shows root resource at top."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -146,10 +151,11 @@ class TestInstallPlanTreeVisualization:
     @pytest.mark.asyncio
     async def test_tree_shows_required_dependencies(self, dependency_tree_data):
         """Dependency tree displays required dependencies."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -171,14 +177,13 @@ class TestInstallPlanTreeVisualization:
             assert has_security or has_archaeologist
 
     @pytest.mark.asyncio
-    async def test_tree_shows_recommended_dependencies_differently(
-        self, dependency_tree_data
-    ):
+    async def test_tree_shows_recommended_dependencies_differently(self, dependency_tree_data):
         """Recommended dependencies are visually distinguished from required."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -196,10 +201,11 @@ class TestInstallPlanTreeVisualization:
     @pytest.mark.asyncio
     async def test_tree_shows_install_order_numbers(self, dependency_tree_data):
         """Tree nodes show installation order numbers."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -221,10 +227,11 @@ class TestInstallPlanTreeVisualization:
     @pytest.mark.asyncio
     async def test_tree_expands_all_nodes_by_default(self, dependency_tree_data):
         """Dependency tree is fully expanded by default."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -243,10 +250,11 @@ class TestInstallPlanTreeVisualization:
     @pytest.mark.asyncio
     async def test_tree_allows_toggling_nodes(self, dependency_tree_data):
         """User can collapse/expand tree nodes."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -277,10 +285,11 @@ class TestInstallPlanSummary:
     @pytest.mark.asyncio
     async def test_summary_shows_total_resources_count(self, dependency_tree_data):
         """Summary displays total number of resources to install."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -301,10 +310,11 @@ class TestInstallPlanSummary:
     @pytest.mark.asyncio
     async def test_summary_shows_total_size(self, dependency_tree_data):
         """Summary displays estimated download size."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -325,10 +335,11 @@ class TestInstallPlanSummary:
     @pytest.mark.asyncio
     async def test_summary_shows_required_vs_recommended_count(self, dependency_tree_data):
         """Summary breaks down required vs recommended dependencies."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -350,10 +361,11 @@ class TestInstallPlanSummary:
     @pytest.mark.asyncio
     async def test_summary_shows_install_order_list(self, dependency_tree_data):
         """Summary displays installation order as list."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -380,10 +392,11 @@ class TestInstallPlanConfirmation:
     @pytest.mark.asyncio
     async def test_confirm_button_starts_installation(self, mock_installer):
         """Clicking confirm starts installation process."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -400,10 +413,11 @@ class TestInstallPlanConfirmation:
     @pytest.mark.asyncio
     async def test_confirm_button_disabled_during_install(self):
         """Confirm button is disabled during installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -423,10 +437,11 @@ class TestInstallPlanConfirmation:
     @pytest.mark.asyncio
     async def test_cancel_button_closes_screen_before_install(self):
         """Cancel button closes screen without installing."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -446,10 +461,11 @@ class TestInstallPlanConfirmation:
     @pytest.mark.asyncio
     async def test_escape_key_cancels_before_install(self):
         """Escape key cancels and closes screen."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -469,10 +485,11 @@ class TestInstallPlanConfirmation:
     @pytest.mark.asyncio
     async def test_enter_key_confirms_installation(self, mock_installer):
         """Enter key triggers installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -492,10 +509,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_progress_bar_appears_during_install(self, mock_installer):
         """Progress bar is displayed during installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -513,10 +531,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_progress_bar_updates_during_install(self, mock_installer):
         """Progress bar updates as resources are installed."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -538,10 +557,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_current_installing_resource_displayed(self, mock_installer):
         """Currently installing resource is displayed."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -558,10 +578,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_installation_log_shows_progress(self):
         """Installation log shows each step."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -583,10 +604,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_progress_shows_success_checkmarks(self):
         """Successfully installed resources show checkmark."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -607,10 +629,11 @@ class TestInstallPlanProgressTracking:
     @pytest.mark.asyncio
     async def test_progress_shows_failure_indicators(self):
         """Failed installations show error indicator."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -635,10 +658,11 @@ class TestInstallPlanCompletion:
     @pytest.mark.asyncio
     async def test_success_message_on_complete_install(self, mock_installer):
         """Success message shown when all resources installed."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.return_value = {
             "success": True,
@@ -665,10 +689,11 @@ class TestInstallPlanCompletion:
     @pytest.mark.asyncio
     async def test_partial_success_message(self, mock_installer):
         """Partial success message when some resources fail."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.return_value = {
             "success": False,
@@ -695,10 +720,11 @@ class TestInstallPlanCompletion:
     @pytest.mark.asyncio
     async def test_failure_message_on_failed_install(self, mock_installer):
         """Error message shown when installation fails."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.return_value = {
             "success": False,
@@ -724,10 +750,11 @@ class TestInstallPlanCompletion:
     @pytest.mark.asyncio
     async def test_close_button_appears_after_completion(self):
         """Close button appears after installation completes."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -745,10 +772,11 @@ class TestInstallPlanCompletion:
     @pytest.mark.asyncio
     async def test_retry_button_appears_on_failure(self, mock_installer):
         """Retry button appears when installation fails."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.return_value = {
             "success": False,
@@ -777,10 +805,11 @@ class TestInstallPlanCancellation:
     @pytest.mark.asyncio
     async def test_cancel_button_available_during_install(self):
         """Cancel button remains available during installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -798,10 +827,11 @@ class TestInstallPlanCancellation:
     @pytest.mark.asyncio
     async def test_cancel_during_install_shows_confirmation(self):
         """Cancelling during install shows confirmation dialog."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -813,7 +843,7 @@ class TestInstallPlanCancellation:
         async with app.run_test() as pilot:
             screen = app.screen
 
-            with patch.object(screen, 'show_confirmation_dialog') as mock_confirm:
+            with patch.object(screen, "show_confirmation_dialog") as mock_confirm:
                 await screen.action_cancel()
 
                 mock_confirm.assert_called_once()
@@ -821,10 +851,11 @@ class TestInstallPlanCancellation:
     @pytest.mark.asyncio
     async def test_cancel_confirmation_stops_installation(self, mock_installer):
         """Confirming cancel stops the installation process."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -847,10 +878,11 @@ class TestInstallPlanErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_network_error_gracefully(self, mock_installer):
         """Network errors during install are handled gracefully."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.side_effect = Exception("Network error")
 
@@ -872,10 +904,11 @@ class TestInstallPlanErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_dependency_resolution_error(self, mock_dependency_resolver):
         """Dependency resolution errors are displayed clearly."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_dependency_resolver.resolve.side_effect = Exception("Circular dependency")
 
@@ -883,8 +916,7 @@ class TestInstallPlanErrorHandling:
             async def on_mount(self):
                 await self.push_screen(
                     InstallPlanScreen(
-                        resource_id="architect",
-                        dependency_resolver=mock_dependency_resolver
+                        resource_id="architect", dependency_resolver=mock_dependency_resolver
                     )
                 )
 
@@ -897,10 +929,11 @@ class TestInstallPlanErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_disk_space_error(self, mock_installer):
         """Disk space errors are shown with helpful message."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.side_effect = OSError("No space left on device")
 
@@ -920,10 +953,11 @@ class TestInstallPlanErrorHandling:
     @pytest.mark.asyncio
     async def test_handles_permission_error(self, mock_installer):
         """Permission errors are shown with sudo suggestion."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         mock_installer.install.side_effect = PermissionError("Permission denied")
 
@@ -947,10 +981,11 @@ class TestInstallPlanSkipOptions:
     @pytest.mark.asyncio
     async def test_can_toggle_recommended_dependencies(self, dependency_tree_data):
         """User can toggle recommended dependencies on/off."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -973,10 +1008,11 @@ class TestInstallPlanSkipOptions:
     @pytest.mark.asyncio
     async def test_skip_all_recommended_checkbox(self, dependency_tree_data):
         """Checkbox to skip all recommended dependencies."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -999,10 +1035,11 @@ class TestInstallPlanSkipOptions:
     @pytest.mark.asyncio
     async def test_summary_updates_when_skipping_recommended(self):
         """Summary updates when recommended dependencies are skipped."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -1035,10 +1072,11 @@ class TestInstallPlanKeyboardNavigation:
     @pytest.mark.asyncio
     async def test_tab_cycles_through_buttons(self):
         """Tab key cycles through confirm/cancel buttons."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -1065,10 +1103,11 @@ class TestInstallPlanKeyboardNavigation:
     @pytest.mark.asyncio
     async def test_y_key_confirms_install(self, mock_installer):
         """'Y' key confirms installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -1084,10 +1123,11 @@ class TestInstallPlanKeyboardNavigation:
     @pytest.mark.asyncio
     async def test_n_key_cancels_install(self):
         """'N' key cancels installation."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):
@@ -1112,11 +1152,13 @@ class TestInstallPlanPerformance:
     @pytest.mark.benchmark
     async def test_renders_large_dependency_tree_quickly(self):
         """Large dependency trees render within performance budget."""
+        import time
+
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
-        import time
 
         # Create large tree (50 dependencies)
         large_tree = {
@@ -1152,10 +1194,11 @@ class TestInstallPlanPerformance:
     @pytest.mark.asyncio
     async def test_installation_progress_updates_smoothly(self, mock_installer):
         """Progress updates don't block UI."""
+        from textual.app import App
+
         from claude_resource_manager.tui.screens.install_plan_screen import (
             InstallPlanScreen,
         )
-        from textual.app import App
 
         class TestApp(App):
             async def on_mount(self):

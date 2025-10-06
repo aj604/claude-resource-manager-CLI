@@ -23,7 +23,7 @@ class Source(BaseModel):
     path: str = Field(..., description="Path to resource in repository")
     url: str = Field(..., description="HTTPS URL to the resource")
 
-    @field_validator('url')
+    @field_validator("url")
     @classmethod
     def validate_https_url(cls, v: str) -> str:
         """Validate that URL uses HTTPS protocol.
@@ -37,8 +37,8 @@ class Source(BaseModel):
         Raises:
             ValueError: If URL doesn't start with https://
         """
-        if not v.startswith('https://'):
-            raise ValueError('URL must use HTTPS protocol for security')
+        if not v.startswith("https://"):
+            raise ValueError("URL must use HTTPS protocol for security")
         return v
 
 
@@ -84,10 +84,12 @@ class Resource(BaseModel):
     file_type: str = Field(..., description="File extension")
     source: Source = Field(..., description="Source location")
     install_path: str = Field(..., description="Installation path")
-    metadata: Optional[dict[str, Any]] = Field(default_factory=dict, description="Additional metadata")
+    metadata: Optional[dict[str, Any]] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
     dependencies: Optional[Dependency] = Field(None, description="Dependency information")
 
-    @field_validator('id')
+    @field_validator("id")
     @classmethod
     def validate_id_format(cls, v: str) -> str:
         """Validate ID format.
@@ -102,14 +104,14 @@ class Resource(BaseModel):
             ValueError: If ID is empty or contains invalid characters
         """
         if not v:
-            raise ValueError('ID cannot be empty')
+            raise ValueError("ID cannot be empty")
 
-        if not re.match(r'^[a-z0-9-]+$', v):
-            raise ValueError('ID must contain only lowercase letters, numbers, and hyphens')
+        if not re.match(r"^[a-z0-9-]+$", v):
+            raise ValueError("ID must contain only lowercase letters, numbers, and hyphens")
 
         return v
 
-    @field_validator('type')
+    @field_validator("type")
     @classmethod
     def validate_type(cls, v: str) -> str:
         """Validate resource type.
@@ -123,13 +125,13 @@ class Resource(BaseModel):
         Raises:
             ValueError: If type is not in allowed list
         """
-        allowed_types = ['agent', 'command', 'hook', 'template', 'mcp']
+        allowed_types = ["agent", "command", "hook", "template", "mcp"]
         if v not in allowed_types:
-            raise ValueError(f'Type must be one of {allowed_types}')
+            raise ValueError(f"Type must be one of {allowed_types}")
 
         return v
 
-    @field_validator('dependencies')
+    @field_validator("dependencies")
     @classmethod
     def validate_no_self_reference(cls, v: Optional[Dependency], info) -> Optional[Dependency]:
         """Validate that resource doesn't depend on itself.
@@ -147,11 +149,15 @@ class Resource(BaseModel):
         if v is None:
             return v
 
-        resource_id = info.data.get('id')
+        resource_id = info.data.get("id")
         if resource_id:
             if resource_id in v.required:
-                raise ValueError('Resource cannot have self-referencing dependency (circular dependency)')
+                raise ValueError(
+                    "Resource cannot have self-referencing dependency (circular dependency)"
+                )
             if resource_id in v.recommended:
-                raise ValueError('Resource cannot have self-referencing dependency (circular dependency)')
+                raise ValueError(
+                    "Resource cannot have self-referencing dependency (circular dependency)"
+                )
 
         return v

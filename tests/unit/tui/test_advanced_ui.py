@@ -34,13 +34,11 @@ Framework: Textual test utilities with async/await
 Target: All tests must fail, demonstrating TDD approach
 """
 
-import pytest
-from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch
-from textual.app import App
-from textual.widgets import DataTable, Input, Static, Button
-from textual.pilot import Pilot
+from unittest.mock import AsyncMock, Mock, patch
 
+import pytest
+from textual.app import App
+from textual.widgets import DataTable
 
 # Import screens
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
@@ -56,6 +54,7 @@ class AdvancedUITestApp(App):
 
         # Theme management - for test compatibility
         from claude_resource_manager.tui.app import ThemeManager
+
         self.theme_manager = ThemeManager()
 
         # Register themes immediately in __init__ so they can be set before run_test()
@@ -65,10 +64,7 @@ class AdvancedUITestApp(App):
     def on_mount(self) -> None:
         """Push BrowserScreen on mount."""
         self.push_screen(
-            BrowserScreen(
-                catalog_loader=self.catalog_loader,
-                search_engine=self.search_engine
-            )
+            BrowserScreen(catalog_loader=self.catalog_loader, search_engine=self.search_engine)
         )
 
     def resize(self, width: int, height: int) -> None:
@@ -186,15 +182,15 @@ class TestHelpScreen:
 
             # Should contain key shortcuts
             expected_shortcuts = [
-                "↑↓",           # Navigation
-                "Enter",        # Select/Open
-                "/",           # Search
-                "Space",       # Multi-select
-                "Tab",         # Switch pane
-                "Esc",         # Cancel/Back
-                "q",           # Quit
-                "s",           # Sort
-                "?",           # Help
+                "↑↓",  # Navigation
+                "Enter",  # Select/Open
+                "/",  # Search
+                "Space",  # Multi-select
+                "Tab",  # Switch pane
+                "Esc",  # Cancel/Back
+                "q",  # Quit
+                "s",  # Sort
+                "?",  # Help
             ]
 
             for shortcut in expected_shortcuts:
@@ -357,7 +353,9 @@ class TestSortingFeatures:
 
             # Ensure resources were loaded properly
             assert browser.filtered_resources, "Resources should be loaded"
-            assert len(browser.filtered_resources) == 4, f"Should have 4 resources, got {len(browser.filtered_resources)}"
+            assert (
+                len(browser.filtered_resources) == 4
+            ), f"Should have 4 resources, got {len(browser.filtered_resources)}"
 
             # Verify the resources are the ones we provided
             resource_names = {r.get("name") for r in browser.filtered_resources}
@@ -373,15 +371,23 @@ class TestSortingFeatures:
             await browser.sort_by("name")
 
             # Verify we're sorted by name
-            assert getattr(browser, '_sort_field', None) == "name", f"Expected 'name', got {getattr(browser, '_sort_field', None)}"
+            assert (
+                getattr(browser, "_sort_field", None) == "name"
+            ), f"Expected 'name', got {getattr(browser, '_sort_field', None)}"
 
             # Check that filtered_resources are actually sorted by name (ascending)
             names = [r.get("name", r.get("id", "")).lower() for r in browser.filtered_resources]
-            assert names == sorted(names), f"Resources not sorted alphabetically: {names} != {sorted(names)}"
-            assert getattr(browser, '_sort_reverse', False) == False, "Should be ascending by default"
+            assert names == sorted(
+                names
+            ), f"Resources not sorted alphabetically: {names} != {sorted(names)}"
+            assert (
+                getattr(browser, "_sort_reverse", False) == False
+            ), "Should be ascending by default"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sort_toggled_THEN_reverses_order(self, mock_catalog_loader, sample_resources):
+    async def test_WHEN_sort_toggled_THEN_reverses_order(
+        self, mock_catalog_loader, sample_resources
+    ):
         """Toggling sort MUST reverse order (A-Z to Z-A).
 
         Pressing sort key again should reverse current sort.
@@ -412,7 +418,9 @@ class TestSortingFeatures:
             assert rows_desc == list(reversed(rows_asc)), "Sort not reversed"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sort_by_type_THEN_groups_by_type(self, mock_catalog_loader, sample_resources):
+    async def test_WHEN_sort_by_type_THEN_groups_by_type(
+        self, mock_catalog_loader, sample_resources
+    ):
         """Sorting by type MUST group resources by type.
 
         Should group agents, mcps, hooks, etc. together.
@@ -440,7 +448,9 @@ class TestSortingFeatures:
             assert types == sorted(types), "Not sorted by type"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sort_by_date_THEN_orders_by_updated_date(self, mock_catalog_loader, sample_resources_with_dates):
+    async def test_WHEN_sort_by_date_THEN_orders_by_updated_date(
+        self, mock_catalog_loader, sample_resources_with_dates
+    ):
         """Sorting by date MUST order by last updated.
 
         Most recently updated should appear first.
@@ -468,7 +478,9 @@ class TestSortingFeatures:
             assert dates == sorted(dates, reverse=True), "Not sorted by date"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sort_preference_set_THEN_persists_across_sessions(self, mock_catalog_loader, tmp_path):
+    async def test_WHEN_sort_preference_set_THEN_persists_across_sessions(
+        self, mock_catalog_loader, tmp_path
+    ):
         """Sort preference MUST persist across app sessions.
 
         Should save sort preference to config and restore on launch.
@@ -492,7 +504,9 @@ class TestSortingFeatures:
                 await browser1.sort_by("type")
 
                 # Verify we're on type sort
-                assert getattr(browser1, '_sort_field', None) == "type", f"Expected 'type', got {getattr(browser1, '_sort_field', None)}"
+                assert (
+                    getattr(browser1, "_sort_field", None) == "type"
+                ), f"Expected 'type', got {getattr(browser1, '_sort_field', None)}"
 
                 # Manually save preferences
                 browser1._save_preferences()
@@ -509,14 +523,20 @@ class TestSortingFeatures:
                 # Should remember sort preference
                 browser2 = app2.screen
                 # _load_preferences sets current_sort from saved preferences
-                assert browser2.current_sort == "type", f"current_sort not restored, got {browser2.current_sort}"
-                
+                assert (
+                    browser2.current_sort == "type"
+                ), f"current_sort not restored, got {browser2.current_sort}"
+
                 # Optionally, verify by performing a sort to initialize _sort_field
                 await browser2.sort_by(browser2.current_sort)
-                assert getattr(browser2, '_sort_field', None) == "type", "Sort preference not applied to _sort_field"
+                assert (
+                    getattr(browser2, "_sort_field", None) == "type"
+                ), "Sort preference not applied to _sort_field"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sort_with_filter_THEN_combines_correctly(self, mock_catalog_loader, sample_resources):
+    async def test_WHEN_sort_with_filter_THEN_combines_correctly(
+        self, mock_catalog_loader, sample_resources
+    ):
         """Sort MUST work correctly with active filters.
 
         Should sort only visible (filtered) resources.
@@ -551,7 +571,9 @@ class TestSortingFeatures:
             assert names == sorted(names), "Not sorted within filter"
 
     @pytest.mark.asyncio
-    async def test_WHEN_sorted_THEN_shows_sort_indicator(self, mock_catalog_loader, sample_resources):
+    async def test_WHEN_sorted_THEN_shows_sort_indicator(
+        self, mock_catalog_loader, sample_resources
+    ):
         """Active sort MUST show visual indicator via notification.
 
         IMPLEMENTATION: Shows notification with sort field and direction (↑/↓).
@@ -601,7 +623,9 @@ class TestResponsiveLayout:
     """
 
     @pytest.mark.asyncio
-    async def test_WHEN_terminal_too_small_THEN_shows_minimum_size_warning(self, mock_catalog_loader):
+    async def test_WHEN_terminal_too_small_THEN_shows_minimum_size_warning(
+        self, mock_catalog_loader
+    ):
         """Terminal MUST show warning if below minimum 40x10.
 
         Should display friendly message instead of broken UI.
@@ -659,8 +683,10 @@ class TestResponsiveLayout:
         """
         # Create loader that returns sample resources
         loader = Mock()
+
         async def mock_load_resources():
             return sample_resources
+
         loader.load_resources = mock_load_resources
 
         app = AdvancedUITestApp(catalog_loader=loader)
@@ -704,8 +730,13 @@ class TestResponsiveLayout:
 
             # Should have theme_manager available (detection capability exists)
             # Note: Textual uses 'textual-dark' as default, but we can detect and set custom themes
-            assert hasattr(app, 'theme_manager'), "Theme manager not available"
-            assert app.theme in ["dark", "light", "textual-dark", "textual-light"], f"Invalid theme: {app.theme}"
+            assert hasattr(app, "theme_manager"), "Theme manager not available"
+            assert app.theme in [
+                "dark",
+                "light",
+                "textual-dark",
+                "textual-light",
+            ], f"Invalid theme: {app.theme}"
 
     @pytest.mark.asyncio
     async def test_WHEN_dark_mode_THEN_uses_dark_colors(self, mock_catalog_loader):
@@ -795,15 +826,18 @@ class TestResponsiveLayout:
 
 # Fixtures for advanced UI tests
 
+
 @pytest.fixture
 def mock_catalog_loader():
     """Mock catalog loader."""
     loader = Mock()
     loader.load_all_resources.return_value = []
     loader.load_index.return_value = Mock(total=0, types={})
+
     # Add async load_resources for BrowserScreen compatibility
     async def mock_load_resources():
         return []
+
     loader.load_resources = mock_load_resources
     return loader
 
@@ -812,8 +846,18 @@ def mock_catalog_loader():
 def sample_resources():
     """Sample resources for testing."""
     return [
-        {"id": "zebra-agent", "type": "agent", "name": "Zebra Agent", "description": "Last alphabetically"},
-        {"id": "alpha-agent", "type": "agent", "name": "Alpha Agent", "description": "First alphabetically"},
+        {
+            "id": "zebra-agent",
+            "type": "agent",
+            "name": "Zebra Agent",
+            "description": "Last alphabetically",
+        },
+        {
+            "id": "alpha-agent",
+            "type": "agent",
+            "name": "Alpha Agent",
+            "description": "First alphabetically",
+        },
         {"id": "beta-mcp", "type": "mcp", "name": "Beta MCP", "description": "MCP resource"},
         {"id": "gamma-hook", "type": "hook", "name": "Gamma Hook", "description": "Hook resource"},
     ]
@@ -825,9 +869,11 @@ def mock_catalog_loader_with_resources(sample_resources):
     loader = Mock()
     loader.load_all_resources.return_value = sample_resources
     loader.load_index.return_value = Mock(total=len(sample_resources), types={})
+
     # Add async load_resources
     async def mock_load_resources():
         return sample_resources
+
     loader.load_resources = mock_load_resources
     return loader
 
@@ -836,16 +882,7 @@ def mock_catalog_loader_with_resources(sample_resources):
 def sample_resources_with_dates():
     """Sample resources with updated dates."""
     return [
-        {
-            "id": "old", "type": "agent", "name": "Old Resource",
-            "updated": "2024-01-01T00:00:00Z"
-        },
-        {
-            "id": "new", "type": "agent", "name": "New Resource",
-            "updated": "2024-12-01T00:00:00Z"
-        },
-        {
-            "id": "mid", "type": "agent", "name": "Mid Resource",
-            "updated": "2024-06-15T00:00:00Z"
-        },
+        {"id": "old", "type": "agent", "name": "Old Resource", "updated": "2024-01-01T00:00:00Z"},
+        {"id": "new", "type": "agent", "name": "New Resource", "updated": "2024-12-01T00:00:00Z"},
+        {"id": "mid", "type": "agent", "name": "Mid Resource", "updated": "2024-06-15T00:00:00Z"},
     ]

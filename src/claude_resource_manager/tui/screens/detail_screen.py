@@ -84,9 +84,7 @@ class DetailScreen(Screen):
         """
         # Header with title
         yield Static(
-            self.resource.get("name", "Resource Details"),
-            id="resource-title",
-            classes="title"
+            self.resource.get("name", "Resource Details"), id="resource-title", classes="title"
         )
 
         # Main content container
@@ -96,31 +94,31 @@ class DetailScreen(Screen):
                 yield Static(
                     self.resource.get("name", "Unknown"),
                     id="resource-name",
-                    classes="resource-name"
+                    classes="resource-name",
                 )
 
                 yield Static(
                     self.resource.get("type", "unknown").upper(),
                     id="resource-type",
-                    classes="resource-type"
+                    classes="resource-type",
                 )
 
                 yield Static(
                     self.resource.get("version", "v0.0.0"),
                     id="resource-version",
-                    classes="resource-version"
+                    classes="resource-version",
                 )
 
                 yield Static(
                     self.resource.get("author", "Unknown"),
                     id="resource-author",
-                    classes="resource-author"
+                    classes="resource-author",
                 )
 
                 yield Static(
                     self.resource.get("summary", ""),
                     id="resource-summary",
-                    classes="resource-summary"
+                    classes="resource-summary",
                 )
 
                 install_path = self.resource.get("install_path", "")
@@ -129,9 +127,7 @@ class DetailScreen(Screen):
                     if not install_path.startswith("/"):
                         install_path = install_path
                 yield Static(
-                    install_path or "No install path",
-                    id="install-path",
-                    classes="install-path"
+                    install_path or "No install path", id="install-path", classes="install-path"
                 )
 
             # Tags section
@@ -142,10 +138,7 @@ class DetailScreen(Screen):
                     yield Static(f"Tags: {tags_text}", classes="tags-display")
 
             # Description section
-            with ScrollableContainer(
-                id="description-container",
-                classes="section scrollable"
-            ):
+            with ScrollableContainer(id="description-container", classes="section scrollable"):
                 description = self.resource.get("description", "No description available")
                 yield Markdown(description, id="resource-description")
 
@@ -156,16 +149,14 @@ class DetailScreen(Screen):
                     if "tools" in metadata:
                         tools_text = ", ".join(metadata["tools"])
                         yield Static(
-                            f"Tools: {tools_text}",
-                            id="metadata-tools",
-                            classes="metadata-item"
+                            f"Tools: {tools_text}", id="metadata-tools", classes="metadata-item"
                         )
 
                     if "model" in metadata:
                         yield Static(
                             f"Model: {metadata['model']}",
                             id="metadata-model",
-                            classes="metadata-item"
+                            classes="metadata-item",
                         )
 
             # Source information section
@@ -175,45 +166,29 @@ class DetailScreen(Screen):
                     yield Static("Source Information:", classes="section-title")
 
                     if "url" in source:
-                        yield Static(
-                            source["url"],
-                            id="source-url",
-                            classes="source-item"
-                        )
-                        yield Button(
-                            "Open URL",
-                            id="source-url-link",
-                            variant="default"
-                        )
+                        yield Static(source["url"], id="source-url", classes="source-item")
+                        yield Button("Open URL", id="source-url-link", variant="default")
 
                     if "repo" in source:
                         yield Static(
-                            f"Repository: {source['repo']}",
-                            id="repository",
-                            classes="source-item"
+                            f"Repository: {source['repo']}", id="repository", classes="source-item"
                         )
 
                     if "path" in source:
                         yield Static(
-                            f"Path: {source['path']}",
-                            id="file-path",
-                            classes="source-item"
+                            f"Path: {source['path']}", id="file-path", classes="source-item"
                         )
 
             # Dependency section - will be populated on mount
             with Container(id="dependency-section", classes="section"):
                 yield Static("Dependencies:", classes="section-title")
                 dep_loading = Static(
-                    "Loading dependencies...",
-                    id="dependency-loading",
-                    classes="loading-message"
+                    "Loading dependencies...", id="dependency-loading", classes="loading-message"
                 )
                 yield dep_loading
 
                 dep_error = Static(
-                    "Error loading dependencies",
-                    id="dependency-error",
-                    classes="error-message"
+                    "Error loading dependencies", id="dependency-error", classes="error-message"
                 )
                 dep_error.visible = False
                 yield dep_error
@@ -223,18 +198,12 @@ class DetailScreen(Screen):
                 yield dep_tree
 
                 no_deps = Static(
-                    "No dependencies required",
-                    id="no-dependencies-message",
-                    classes="info-message"
+                    "No dependencies required", id="no-dependencies-message", classes="info-message"
                 )
                 no_deps.visible = False
                 yield no_deps
 
-                install_order = Static(
-                    "",
-                    id="install-order",
-                    classes="install-order"
-                )
+                install_order = Static("", id="install-order", classes="install-order")
                 install_order.visible = False
                 yield install_order
 
@@ -244,18 +213,11 @@ class DetailScreen(Screen):
 
         # Action buttons
         with Horizontal(id="action-buttons", classes="button-row"):
-            yield Button(
-                "Back",
-                id="back-button",
-                variant="default"
-            )
+            yield Button("Back", id="back-button", variant="default")
 
             install_label = "Installed" if self.is_installed else "Install"
             yield Button(
-                install_label,
-                id="install-button",
-                variant="primary",
-                disabled=self.is_installed
+                install_label, id="install-button", variant="primary", disabled=self.is_installed
             )
 
     async def on_mount(self) -> None:
@@ -268,9 +230,7 @@ class DetailScreen(Screen):
         # Load dependencies
         if self.dependency_resolver and self.resource.get("id"):
             try:
-                self._dependency_data = self.dependency_resolver.resolve(
-                    self.resource["id"]
-                )
+                self._dependency_data = self.dependency_resolver.resolve(self.resource["id"])
                 await self._render_dependencies()
                 self.query_one("#dependency-loading").visible = False
             except Exception as e:
@@ -355,18 +315,12 @@ class DetailScreen(Screen):
         # This is a simplified implementation
         try:
             related = self.search_engine.search(" ".join(tags))
-            self._related_resources = [
-                r for r in related
-                if r.get("id") != self.resource.get("id")
-            ]
+            self._related_resources = [r for r in related if r.get("id") != self.resource.get("id")]
 
             # Display related resources
             related_container = self.query_one("#related-resources")
             for resource in self._related_resources[:5]:  # Limit to 5
-                btn = Button(
-                    resource.get("name", "Unknown"),
-                    classes="related-resource-button"
-                )
+                btn = Button(resource.get("name", "Unknown"), classes="related-resource-button")
                 related_container.mount(btn)
         except Exception:
             pass  # Silently fail for related resources
@@ -389,8 +343,7 @@ class DetailScreen(Screen):
         from claude_resource_manager.tui.screens.install_plan_screen import InstallPlanScreen
 
         install_screen = InstallPlanScreen(
-            resource=self.resource,
-            dependency_data=self._dependency_data
+            resource=self.resource, dependency_data=self._dependency_data
         )
         self.app.push_screen(install_screen)
 
@@ -401,6 +354,7 @@ class DetailScreen(Screen):
         """
         try:
             import pyperclip
+
             resource_id = self.resource.get("id", "")
             pyperclip.copy(resource_id)
         except ImportError:
@@ -414,6 +368,7 @@ class DetailScreen(Screen):
         """
         try:
             import pyperclip
+
             resource_id = self.resource.get("id", "")
             command = f"crm install {resource_id}"
             pyperclip.copy(command)
@@ -449,7 +404,7 @@ class DetailScreen(Screen):
         dep_screen = DetailScreen(
             resource={"id": dependency_id, "name": dependency_id},
             dependency_resolver=self.dependency_resolver,
-            search_engine=self.search_engine
+            search_engine=self.search_engine,
         )
         self.app.push_screen(dep_screen)
 
@@ -463,14 +418,13 @@ class DetailScreen(Screen):
         """
         # Find the full resource data
         related_resource = next(
-            (r for r in self._related_resources if r.get("id") == resource_id),
-            None
+            (r for r in self._related_resources if r.get("id") == resource_id), None
         )
 
         if related_resource:
             related_screen = DetailScreen(
                 resource=related_resource,
                 dependency_resolver=self.dependency_resolver,
-                search_engine=self.search_engine
+                search_engine=self.search_engine,
             )
             self.app.push_screen(related_screen)

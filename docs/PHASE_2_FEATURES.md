@@ -46,6 +46,8 @@ Phase 2 delivers a significantly enhanced user experience with:
 
 ## Fuzzy Search
 
+![Fuzzy Search in Action](../demo/output/fuzzy-search.gif)
+
 ### Overview
 
 Fuzzy search finds resources even when you misspell them, using RapidFuzz for intelligent matching.
@@ -60,6 +62,8 @@ architet     # Finds "architect" despite typo
 mcp-dev-tam  # Finds "mcp-dev-team"
 scurity      # Finds "security-reviewer"
 ```
+
+**See it in action:** [Fuzzy Search Demo](../demo/output/fuzzy-search.gif)
 
 #### Search Scoring
 
@@ -107,9 +111,13 @@ Results are combined and deduplicated, with exact matches always ranked first.
 - **Fuzzy match**: <20ms for 331 resources
 - **Overall search**: <0.3ms (77x better than Phase 1 target)
 
+[See implementation details](../src/claude_resource_manager/core/fuzzy_search.py)
+
 ---
 
 ## Category System
+
+![Category Filtering](../demo/output/categories.gif)
 
 ### Overview
 
@@ -184,9 +192,15 @@ All (331)          # Show all resources
 - **Filtering**: O(n) where n = resources in category
 - **Memory**: <5MB for full tree structure
 
+**Navigation:** Press TAB to cycle through categories
+
+[See implementation details](../src/claude_resource_manager/core/categorizer.py)
+
 ---
 
 ## Multi-Select & Batch Operations
+
+![Multi-Select Demo](../demo/output/multi-select.gif)
 
 ### Overview
 
@@ -227,6 +241,10 @@ Status bar: "2 resources selected"
    - Failed: 0
    - Skipped: 1 (already installed)
 ```
+
+**Visual Feedback:** Selected resources show `[x]` checkbox
+
+[See implementation details](../src/claude_resource_manager/tui/screens/browser_screen.py)
 
 ### Advanced Batch Features
 
@@ -315,6 +333,8 @@ rollback_on_error: true
 
 ### Help System
 
+![Help Modal](../demo/output/help-system.gif)
+
 #### Accessing Help
 
 ```text
@@ -338,6 +358,8 @@ Help content adapts to current screen:
 4. **Sorting**: 's', '1', '2', '3'
 5. **View Controls**: 'p', '?', '+/-'
 6. **Application**: 'q', Ctrl+C, 'r'
+
+[See implementation details](../src/claude_resource_manager/tui/modals/help_modal.py)
 
 ### Sorting
 

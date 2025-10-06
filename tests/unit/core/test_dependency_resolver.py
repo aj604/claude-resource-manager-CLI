@@ -16,17 +16,17 @@ Coverage target: >90%
 Test count: 27 tests
 """
 
+from typing import Any, Dict, List
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
-from typing import Dict, Any, List
 
 from claude_resource_manager.core.dependency_resolver import (
-    DependencyResolver,
     DependencyError,
+    DependencyResolver,
 )
-from claude_resource_manager.models.resource import Resource, Dependency, Source
 from claude_resource_manager.models.catalog import Catalog
-
+from claude_resource_manager.models.resource import Resource
 
 # ============================================================================
 # FIXTURES - Test Data Builders
@@ -285,9 +285,9 @@ def test_resolve_deep_nesting_five_levels(mock_catalog_loader):
     resource_b = create_resource_data("lib-b", required_deps=["lib-c"])
     resource_a = create_resource_data("agent-a", required_deps=["lib-b"])
 
-    catalog = create_catalog_with_resources([
-        resource_a, resource_b, resource_c, resource_d, resource_e
-    ])
+    catalog = create_catalog_with_resources(
+        [resource_a, resource_b, resource_c, resource_d, resource_e]
+    )
 
     def mock_get_resource(resource_id, resource_type):
         resources_map = {
@@ -322,9 +322,9 @@ def test_resolve_deep_nesting_exceeds_max_depth(mock_catalog_loader):
     resource_b = create_resource_data("lib-b", required_deps=["lib-c"])
     resource_a = create_resource_data("agent-a", required_deps=["lib-b"])
 
-    catalog = create_catalog_with_resources([
-        resource_a, resource_b, resource_c, resource_d, resource_e
-    ])
+    catalog = create_catalog_with_resources(
+        [resource_a, resource_b, resource_c, resource_d, resource_e]
+    )
 
     def mock_get_resource(resource_id, resource_type):
         resources_map = {
@@ -372,8 +372,7 @@ def test_resolve_missing_required_dependency(mock_catalog_loader):
 
     # Act & Assert
     with pytest.raises(
-        DependencyError,
-        match="Required dependency 'lib-missing' not found in catalog"
+        DependencyError, match="Required dependency 'lib-missing' not found in catalog"
     ):
         resolver.resolve("agent-a", catalog, mock_catalog_loader)
 
@@ -419,9 +418,7 @@ def test_resolve_recommended_dependencies_excluded_by_default(mock_catalog_loade
     )
     resource_required = create_resource_data("lib-required")
 
-    catalog = create_catalog_with_resources([
-        resource_a, resource_required, resource_recommended
-    ])
+    catalog = create_catalog_with_resources([resource_a, resource_required, resource_recommended])
 
     def mock_get_resource(resource_id, resource_type):
         resources_map = {
@@ -457,9 +454,7 @@ def test_resolve_recommended_dependencies_included_when_requested(mock_catalog_l
     )
     resource_required = create_resource_data("lib-required")
 
-    catalog = create_catalog_with_resources([
-        resource_a, resource_required, resource_recommended
-    ])
+    catalog = create_catalog_with_resources([resource_a, resource_required, resource_recommended])
 
     def mock_get_resource(resource_id, resource_type):
         resources_map = {

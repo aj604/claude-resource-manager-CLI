@@ -15,10 +15,11 @@ Strategy: RED phase - All tests will FAIL until multi-select is implemented
 Author: TestMaster (TDD Phase)
 """
 
+from unittest.mock import AsyncMock
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch
 from textual.app import App
-from textual.widgets import DataTable, Input, Static, Button
+from textual.widgets import DataTable
 
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 
@@ -34,16 +35,14 @@ class MultiSelectTestApp(App):
     def on_mount(self) -> None:
         """Push BrowserScreen on mount."""
         self.push_screen(
-            BrowserScreen(
-                catalog_loader=self.catalog_loader,
-                search_engine=self.search_engine
-            )
+            BrowserScreen(catalog_loader=self.catalog_loader, search_engine=self.search_engine)
         )
 
 
 # ============================================================================
 # Selection State Management Tests (8 tests)
 # ============================================================================
+
 
 class TestSelectionStateManagement:
     """Test multi-select state tracking and management."""
@@ -73,7 +72,9 @@ class TestSelectionStateManagement:
 
             # First resource should be selected
             assert len(screen.selected_resources) == 1
-            first_id = screen.filtered_resources[0].get("id", screen.filtered_resources[0].get("name"))
+            first_id = screen.filtered_resources[0].get(
+                "id", screen.filtered_resources[0].get("name")
+            )
             assert first_id in screen.selected_resources
 
     @pytest.mark.asyncio
@@ -95,7 +96,7 @@ class TestSelectionStateManagement:
             # Select first 3 resources
             for i in range(3):
                 await pilot.press("space")  # Select
-                await pilot.press("down")    # Move to next
+                await pilot.press("down")  # Move to next
                 await pilot.pause()
 
             # Should have 3 resources selected
@@ -227,8 +228,7 @@ class TestSelectionStateManagement:
         mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
         mock_search_engine.search.return_value = [sample_resources_list[0]]
         app = MultiSelectTestApp(
-            catalog_loader=mock_catalog_loader,
-            search_engine=mock_search_engine
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
         )
 
         async with app.run_test() as pilot:
@@ -288,6 +288,7 @@ class TestSelectionStateManagement:
 # ============================================================================
 # UI Updates Tests (6 tests)
 # ============================================================================
+
 
 class TestUIUpdates:
     """Test visual feedback and UI updates for multi-select."""
@@ -468,6 +469,7 @@ class TestUIUpdates:
 # Edge Cases Tests (6 tests)
 # ============================================================================
 
+
 class TestEdgeCases:
     """Test edge cases and boundary conditions for multi-select."""
 
@@ -603,9 +605,7 @@ class TestEdgeCases:
             assert screen.selected_resources == selected_before
 
     @pytest.mark.asyncio
-    async def test_WHEN_empty_list_THEN_no_selection_errors(
-        self, mock_catalog_loader
-    ):
+    async def test_WHEN_empty_list_THEN_no_selection_errors(self, mock_catalog_loader):
         """Empty resource list should not cause selection errors."""
         mock_catalog_loader.load_resources = AsyncMock(return_value=[])
         app = MultiSelectTestApp(catalog_loader=mock_catalog_loader)
@@ -626,13 +626,9 @@ class TestEdgeCases:
             assert len(screen.selected_resources) == 0
 
     @pytest.mark.asyncio
-    async def test_WHEN_select_with_no_id_THEN_handles_gracefully(
-        self, mock_catalog_loader
-    ):
+    async def test_WHEN_select_with_no_id_THEN_handles_gracefully(self, mock_catalog_loader):
         """Resources without ID should be handled gracefully."""
-        resources_no_id = [
-            {"type": "agent", "name": "Test Agent", "description": "No ID"}
-        ]
+        resources_no_id = [{"type": "agent", "name": "Test Agent", "description": "No ID"}]
         mock_catalog_loader.load_resources = AsyncMock(return_value=resources_no_id)
         app = MultiSelectTestApp(catalog_loader=mock_catalog_loader)
 

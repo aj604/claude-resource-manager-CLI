@@ -19,8 +19,53 @@ from textual.binding import Binding
 from claude_resource_manager.core.catalog_loader import CatalogLoader
 from claude_resource_manager.core.search_engine import SearchEngine
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
+from claude_resource_manager.tui.theme import get_theme
 
 console = Console()
+
+
+class ThemeManager:
+    """Manages color scheme detection and theme colors for the TUI."""
+
+    def detect_color_scheme(self) -> str:
+        """Detect color scheme from environment or terminal.
+
+        Returns:
+            "dark" or "light" based on environment
+        """
+        # Check TERM_THEME environment variable
+        term_theme = os.getenv("TERM_THEME", "").lower()
+        if term_theme in ("dark", "light"):
+            return term_theme
+
+        # Check COLORFGBG environment variable (used by some terminals)
+        colorfgbg = os.getenv("COLORFGBG", "")
+        if colorfgbg:
+            # Format is "foreground;background"
+            parts = colorfgbg.split(";")
+            if len(parts) >= 2:
+                try:
+                    bg_color = int(parts[-1])
+                    # Light background colors are typically 7 or 15
+                    if bg_color in (7, 15):
+                        return "light"
+                except ValueError:
+                    pass
+
+        # Default to dark theme
+        return "dark"
+
+    def get_theme_colors(self, theme_name: str) -> dict:
+        """Get theme colors for the specified theme.
+
+        Args:
+            theme_name: Name of the theme (dark, light, default)
+
+        Returns:
+            Dictionary of theme colors
+        """
+        theme = get_theme(theme_name)
+        return theme.colors
 
 
 class ResourceManagerApp(App):
@@ -201,7 +246,7 @@ class ResourceManagerApp(App):
 
         # Theme management - detect color scheme
         self.theme_manager = ThemeManager()
-        self.theme = self.theme_manager.detect_color_scheme()
+        self.color_scheme = self.theme_manager.detect_color_scheme()  # "dark" or "light"
 
     def compose(self) -> ComposeResult:
         """Compose the application UI.
@@ -214,7 +259,8 @@ class ResourceManagerApp(App):
         """
         # Header and Footer are automatically added by Textual
         # We don't need to yield them here
-        pass
+        # Return empty generator
+        yield from []
 
     def on_mount(self) -> None:
         """Handle app mount - push initial browser screen.
@@ -252,7 +298,7 @@ def launch_tui(
     catalog_path: Path,
     resource_type: Optional[str] = None,
     category: Optional[str] = None,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> None:
     """
     Launch the TUI browser.
@@ -281,13 +327,8 @@ def launch_tui(
     try:
         # Validate catalog path
         if not catalog_path.exists():
-            console.print(
-                f"[red]Error:[/red] Catalog not found at {catalog_path}",
-                style="bold"
-            )
-            console.print(
-                "[yellow]Hint:[/yellow] Run 'claude-resources sync' to download catalog"
-            )
+            console.print(f"[red]Error:[/red] Catalog not found at {catalog_path}", style="bold")
+            console.print("[yellow]Hint:[/yellow] Run 'claude-resources sync' to download catalog")
             sys.exit(1)
 
         # Initialize catalog loader
@@ -332,13 +373,8 @@ def launch_tui(
         app.run()
 
     except FileNotFoundError:
-        console.print(
-            f"[red]Error:[/red] Catalog not found at {catalog_path}",
-            style="bold"
-        )
-        console.print(
-            "[yellow]Hint:[/yellow] Run 'claude-resources sync' to download catalog"
-        )
+        console.print(f"[red]Error:[/red] Catalog not found at {catalog_path}", style="bold")
+        console.print("[yellow]Hint:[/yellow] Run 'claude-resources sync' to download catalog")
         if verbose:
             console.print_exception()
         sys.exit(1)
@@ -349,99 +385,10 @@ def launch_tui(
         sys.exit(0)
 
     except Exception as e:
-        console.print(
-            "[red]Error:[/red] Failed to launch TUI",
-            style="bold"
-        )
+        console.print("[red]Error:[/red] Failed to launch TUI", style="bold")
         console.print(f"[red]{str(e)}[/red]")
         if verbose:
             console.print_exception()
         sys.exit(1)
 
 
-class ThemeManager:
-    """Manages theme and color scheme detection for the TUI.
-
-    Automatically detects the terminal's color scheme (light vs dark)
-    and provides appropriate theme settings for accessibility.
-
-    Features:
-    - Environment variable detection (COLORFGBG)
-    - Default to dark mode if detection fails
-    - Supports manual theme override
-    """
-
-    def __init__(self):
-        """Initialize the theme manager."""
-        self._detected_scheme: Optional[str] = None
-
-    def detect_color_scheme(self) -> str:
-        """Auto-detect terminal color scheme (light/dark).
-
-        Uses the COLORFGBG environment variable to detect the terminal's
-        background color. Falls back to dark mode if detection fails.
-
-        Returns:
-            "dark" or "light" based on detected terminal scheme
-
-        Note:
-            COLORFGBG format is "foreground;background" where values 0-7
-            are dark colors and 8-15 are light colors.
-        """
-        try:
-            # Check COLORFGBG environment variable
-            colorfgbg = os.environ.get("COLORFGBG", "")
-
-            if colorfgbg:
-                # Parse format: "15;0" (fg;bg)
-                parts = colorfgbg.split(";")
-                if len(parts) >= 2:
-                    bg_color = int(parts[-1])
-                    # Background colors 0-7 are dark, 8-15 are light
-                    is_dark = bg_color < 8
-                    self._detected_scheme = "dark" if is_dark else "light"
-                    return self._detected_scheme
-
-            # Check TERM_PROGRAM for some terminals
-            term_program = os.environ.get("TERM_PROGRAM", "")
-            if "iterm" in term_program.lower():
-                # iTerm2 specific detection could go here
-                pass
-
-        except (ValueError, IndexError):
-            # Failed to parse - fall through to default
-            pass
-
-        # Default to dark mode (most terminals)
-        self._detected_scheme = "dark"
-        return "dark"
-
-    def get_theme_colors(self, scheme: str) -> dict:
-        """Get color palette for the specified scheme.
-
-        Args:
-            scheme: "dark" or "light"
-
-        Returns:
-            Dictionary of theme colors for WCAG 2.1 AA compliance
-        """
-        if scheme == "light":
-            return {
-                "background": "#ffffff",
-                "foreground": "#000000",
-                "primary": "#0066cc",
-                "accent": "#6600cc",
-                "error": "#cc0000",
-                "warning": "#cc6600",
-                "success": "#008800",
-            }
-        else:  # dark
-            return {
-                "background": "#1e1e1e",
-                "foreground": "#e0e0e0",
-                "primary": "#66b3ff",
-                "accent": "#bb66ff",
-                "error": "#ff6666",
-                "warning": "#ffaa66",
-                "success": "#66ff66",
-            }

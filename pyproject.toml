@@ -49,6 +49,7 @@ dev = [
     "pytest-benchmark>=4.0.0",
     "pytest-xdist>=3.3.0",
     "hypothesis>=6.82.0",
+    "pillow>=10.0.0",  # For VHS GIF validation
 
     # Code Quality
     "ruff>=0.1.0",

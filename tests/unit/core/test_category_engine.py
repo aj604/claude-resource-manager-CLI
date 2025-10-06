@@ -5,8 +5,7 @@ Tests will FAIL until CategoryEngine is implemented.
 """
 
 import time
-from typing import List, Dict, Any
-import pytest
+from typing import Any, Dict, List
 
 
 class TestPrefixExtraction:
@@ -466,8 +465,9 @@ class TestPerformanceAndCaching:
         WHEN: Tree is stored in memory
         THEN: Uses reasonable memory (<5MB)
         """
-        from claude_resource_manager.core.category_engine import CategoryEngine
         import sys
+
+        from claude_resource_manager.core.category_engine import CategoryEngine
 
         engine = CategoryEngine()
         tree = engine.build_tree(mock_catalog_331_resources)

@@ -5,7 +5,8 @@ Tests will FAIL until SearchEngine is implemented.
 """
 
 import time
-from typing import List, Dict, Any
+from typing import Any, Dict, List
+
 import pytest
 
 
@@ -448,7 +449,9 @@ class TestSearchEngine:
         WHEN: Random queries are searched (property-based testing)
         THEN: Never crashes, always returns list
         """
-        from hypothesis import given, strategies as st
+        from hypothesis import given
+        from hypothesis import strategies as st
+
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()

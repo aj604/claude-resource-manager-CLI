@@ -4,6 +4,7 @@ These tests follow TDD - they will FAIL until models are implemented.
 """
 
 from typing import Any, Dict
+
 import pytest
 from pydantic import ValidationError
 
@@ -80,9 +81,7 @@ class TestResourceModel:
 
         assert "id" in str(exc_info.value)
 
-    def test_WHEN_empty_string_id_THEN_validation_error(
-        self, sample_resource_data: Dict[str, Any]
-    ):
+    def test_WHEN_empty_string_id_THEN_validation_error(self, sample_resource_data: Dict[str, Any]):
         """
         GIVEN: Resource data with empty string ID
         WHEN: Resource model is created

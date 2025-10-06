@@ -141,22 +141,13 @@ class SearchScreen(Screen):
             Widget: Child widgets for the search screen
         """
         with Container(id="search-container"):
-            yield Input(
-                placeholder="Type to search...",
-                id="search-input"
-            )
+            yield Input(placeholder="Type to search...", id="search-input")
             yield Static(
                 "Type to search resources. Use ↑/↓ to navigate, Enter to select, Esc to cancel.",
-                id="search-help"
+                id="search-help",
             )
-            yield Static(
-                "",
-                id="no-results-message"
-            )
-            yield Static(
-                "",
-                id="search-error"
-            )
+            yield Static("", id="no-results-message")
+            yield Static("", id="search-error")
             with Container(id="results-container"):
                 yield ListView(id="search-results")
 

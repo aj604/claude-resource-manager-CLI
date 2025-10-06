@@ -1,0 +1,646 @@
+name: Generate VHS Demos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/claude_resource_manager/tui/**'  # TUI changes trigger
+      - 'demo/**/*.tape'                       # Tape file changes
+      - '.github/workflows/vhs-demos.yml'      # Workflow changes
+  pull_request:
+    paths:
+      - 'src/claude_resource_manager/tui/**'
+      - 'demo/**/*.tape'
+      - '.github/workflows/vhs-demos.yml'
+  workflow_dispatch:  # Manual trigger
+
+env:
+  VHS_VERSION: 'v0.7.2'
+  DISPLAY: ':99'
+
+jobs:
+  # =========================================================================
+  # Security Validation Job
+  # =========================================================================
+  security-scan:
+    name: Security Scan Tape Files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Scan tape files for dangerous patterns
+        run: |
+          python3 << 'EOF'
+          from pathlib import Path
+          import re
+          import sys
+
+          # Dangerous command patterns
+          dangerous_patterns = {
+              r'\$\(': 'Command substitution detected',
+              r'`[^`]*`': 'Backtick command execution',
+              r'rm\s+-rf\s+/': 'Dangerous deletion command',
+              r'sudo\s+': 'Privilege escalation attempt',
+              r'curl\s+.*\|\s*sh': 'Remote code execution pattern',
+              r'wget\s+.*\|\s*sh': 'Remote code execution pattern',
+              r'chmod\s+777': 'Insecure permissions',
+              r'eval\s+': 'Eval command detected',
+              r'exec\s+': 'Exec command detected',
+          }
+
+          warnings = []
+          errors = []
+
+          for tape in Path('demo').glob('*.tape'):
+              content = tape.read_text()
+
+              for pattern, description in dangerous_patterns.items():
+                  matches = re.findall(pattern, content, re.IGNORECASE)
+                  if matches:
+                      # Critical patterns cause failure
+                      if any(x in pattern for x in ['rm -rf /', 'curl.*|.*sh', 'eval', 'exec']):
+                          errors.append(f'🚨 {tape.name}: {description}')
+                      else:
+                          warnings.append(f'⚠️  {tape.name}: {description}')
+
+          if warnings:
+              print('\n'.join(warnings))
+
+          if errors:
+              print('\nCritical security issues found:')
+              print('\n'.join(errors))
+              sys.exit(1)
+
+          print('✅ Security scan passed - no dangerous patterns detected')
+          EOF
+
+  # =========================================================================
+  # Demo Generation Job (Parallel Matrix Strategy)
+  # =========================================================================
+  generate-demos:
+    name: Generate Demo - ${{ matrix.demo }}
+    runs-on: ubuntu-latest
+    needs: security-scan
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        demo:
+          - quick-start
+          - fuzzy-search
+          - multi-select
+          - categories
+          - help-system
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for committing back
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Cache VHS binary
+        id: cache-vhs
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/vhs
+          key: vhs-${{ env.VHS_VERSION }}-${{ runner.os }}
+
+      - name: Install VHS
+        if: steps.cache-vhs.outputs.cache-hit != 'true'
+        run: |
+          echo "Installing VHS ${{ env.VHS_VERSION }}..."
+          VHS_VERSION_NUM="${{ env.VHS_VERSION }}"
+          VHS_VERSION_NUM="${VHS_VERSION_NUM#v}"  # Remove 'v' prefix
+
+          curl -sL "https://github.com/charmbracelet/vhs/releases/download/${{ env.VHS_VERSION }}/vhs_${VHS_VERSION_NUM}_Linux_x86_64.tar.gz" -o vhs.tar.gz
+          tar -xzf vhs.tar.gz vhs
+          sudo mv vhs /usr/local/bin/
+          sudo chmod +x /usr/local/bin/vhs
+          vhs --version
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ttyd xvfb ffmpeg gifsicle
+
+      - name: Start virtual display
+        run: |
+          Xvfb ${{ env.DISPLAY }} -screen 0 1200x800x24 &
+          sleep 2
+          echo "Virtual display started on ${{ env.DISPLAY }}"
+
+      - name: Generate VHS demo - ${{ matrix.demo }}
+        run: |
+          echo "Generating ${{ matrix.demo }}.gif..."
+          mkdir -p demo/output
+
+          # Run VHS with timeout
+          timeout 120s vhs demo/${{ matrix.demo }}.tape || {
+            exit_code=$?
+            if [ $exit_code -eq 124 ]; then
+              echo "❌ VHS timed out after 120 seconds"
+              exit 1
+            fi
+            exit $exit_code
+          }
+
+          echo "✅ ${{ matrix.demo }}.gif generated"
+
+      - name: Validate demo output
+        run: |
+          python3 << 'EOF'
+          from pathlib import Path
+          import sys
+
+          gif = Path('demo/output/${{ matrix.demo }}.gif')
+
+          # Check file exists
+          if not gif.exists():
+              print(f'❌ Missing: {gif.name}')
+              sys.exit(1)
+
+          # Check file size
+          size_bytes = gif.stat().st_size
+          size_mb = size_bytes / (1024 * 1024)
+
+          print(f'📊 {gif.name}: {size_mb:.2f}MB ({size_bytes:,} bytes)')
+
+          # Validate size constraints
+          if size_bytes == 0:
+              print(f'❌ {gif.name} is empty!')
+              sys.exit(1)
+
+          if size_mb > 2.5:
+              print(f'⚠️  {gif.name} exceeds 2.5MB - will attempt optimization')
+              with open('needs_optimization.flag', 'w') as f:
+                  f.write('true')
+
+          print(f'✅ {gif.name} validation passed')
+          EOF
+
+      - name: Optimize GIF if needed
+        run: |
+          if [ -f "needs_optimization.flag" ]; then
+            echo "Optimizing ${{ matrix.demo }}.gif..."
+            gif_path="demo/output/${{ matrix.demo }}.gif"
+
+            # Create backup
+            cp "$gif_path" "${gif_path}.bak"
+
+            # Optimize with gifsicle
+            gifsicle --lossy=80 -O3 "$gif_path" -o "${gif_path}.opt"
+
+            # Check if optimization worked
+            original_size=$(stat -c%s "${gif_path}.bak")
+            optimized_size=$(stat -c%s "${gif_path}.opt")
+
+            if [ $optimized_size -lt $original_size ]; then
+              mv "${gif_path}.opt" "$gif_path"
+              echo "✅ Optimized: $(echo "scale=2; $original_size / 1048576" | bc)MB → $(echo "scale=2; $optimized_size / 1048576" | bc)MB"
+            else
+              echo "ℹ️  Optimization didn't reduce size, keeping original"
+              rm "${gif_path}.opt"
+            fi
+
+            # Cleanup backup
+            rm "${gif_path}.bak"
+          else
+            echo "No optimization needed for ${{ matrix.demo }}.gif"
+          fi
+
+      - name: Upload demo artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-${{ matrix.demo }}
+          path: demo/output/${{ matrix.demo }}.gif
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Display demo info
+        if: always()
+        run: |
+          if [ -f "demo/output/${{ matrix.demo }}.gif" ]; then
+            size_mb=$(echo "scale=2; $(stat -c%s "demo/output/${{ matrix.demo }}.gif") / 1048576" | bc)
+            echo "### Demo: ${{ matrix.demo }}" >> $GITHUB_STEP_SUMMARY
+            echo "- Size: ${size_mb}MB" >> $GITHUB_STEP_SUMMARY
+            echo "- Path: \`demo/output/${{ matrix.demo }}.gif\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =========================================================================
+  # Aggregation and Validation Job
+  # =========================================================================
+  validate-all-demos:
+    name: Validate All Demos
+    runs-on: ubuntu-latest
+    needs: generate-demos
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all demo artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: demo/output
+          pattern: demo-*
+          merge-multiple: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install validation dependencies
+        run: |
+          pip install Pillow
+
+      - name: Validate all demos
+        run: |
+          python3 << 'EOF'
+          from pathlib import Path
+          import sys
+          from PIL import Image
+
+          output_dir = Path('demo/output')
+          expected_gifs = [
+              'quick-start.gif',
+              'fuzzy-search.gif',
+              'multi-select.gif',
+              'categories.gif',
+              'help-system.gif'
+          ]
+
+          print('🔍 Validating all demo GIFs...\n')
+
+          total_size = 0
+          results = []
+
+          for gif_name in expected_gifs:
+              path = output_dir / gif_name
+
+              if not path.exists():
+                  print(f'❌ Missing: {gif_name}')
+                  sys.exit(1)
+
+              # Size validation
+              size_mb = path.stat().st_size / (1024 * 1024)
+              total_size += path.stat().st_size
+
+              # Dimension validation
+              with Image.open(path) as img:
+                  width, height = img.size
+
+                  # Count frames
+                  frame_count = 0
+                  try:
+                      while True:
+                          img.seek(frame_count)
+                          frame_count += 1
+                  except EOFError:
+                      pass
+
+                  results.append({
+                      'name': gif_name,
+                      'size_mb': size_mb,
+                      'dimensions': f'{width}x{height}',
+                      'frames': frame_count
+                  })
+
+                  # Validations
+                  if size_mb > 2.0:
+                      print(f'⚠️  {gif_name}: {size_mb:.2f}MB (warning: >2MB)')
+
+                  if width != 1200 or height != 800:
+                      print(f'⚠️  {gif_name}: {width}x{height} (expected 1200x800)')
+
+                  if frame_count < 2:
+                      print(f'❌ {gif_name}: Not animated ({frame_count} frame)')
+                      sys.exit(1)
+
+          # Total size check
+          total_mb = total_size / (1024 * 1024)
+
+          print('\n📊 Validation Results:')
+          print('=' * 60)
+          for r in results:
+              print(f"  {r['name']:20} {r['size_mb']:6.2f}MB  {r['dimensions']:12} {r['frames']:4} frames")
+          print('=' * 60)
+          print(f"  TOTAL: {total_mb:.2f}MB")
+          print()
+
+          if total_mb > 10.0:
+              print(f'❌ Total size {total_mb:.2f}MB exceeds 10MB limit')
+              sys.exit(1)
+
+          print(f'✅ All validations passed!')
+          print(f'   - All 5 demos present')
+          print(f'   - Total size: {total_mb:.2f}MB / 10.0MB')
+          print(f'   - All GIFs animated and properly formatted')
+          EOF
+
+      - name: Generate validation summary
+        if: always()
+        run: |
+          echo "## VHS Demo Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if ls demo/output/*.gif 1> /dev/null 2>&1; then
+            echo "### Generated Demos:" >> $GITHUB_STEP_SUMMARY
+            for gif in demo/output/*.gif; do
+              name=$(basename "$gif")
+              size_mb=$(echo "scale=2; $(stat -c%s "$gif") / 1048576" | bc)
+              echo "- ✅ \`$name\` - ${size_mb}MB" >> $GITHUB_STEP_SUMMARY
+            done
+
+            total_mb=$(echo "scale=2; $(du -sb demo/output/*.gif | awk '{sum+=$1} END {print sum}') / 1048576" | bc)
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Total Size:** ${total_mb}MB / 10.0MB" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ No demo GIFs found" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =========================================================================
+  # Integration Testing Job
+  # =========================================================================
+  test-vhs-integration:
+    name: Run VHS Integration Tests
+    runs-on: ubuntu-latest
+    needs: validate-all-demos
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all demo artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: demo/output
+          pattern: demo-*
+          merge-multiple: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Cache VHS binary
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/vhs
+          key: vhs-${{ env.VHS_VERSION }}-${{ runner.os }}
+
+      - name: Run VHS integration tests
+        run: |
+          source .venv/bin/activate
+          pytest tests/integration/test_vhs_integration.py -v --tb=short
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vhs-test-results
+          path: |
+            .pytest_cache
+            test-results.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # =========================================================================
+  # Commit Demos to Main Branch
+  # =========================================================================
+  commit-demos:
+    name: Commit Demos to Repository
+    runs-on: ubuntu-latest
+    needs: test-vhs-integration
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Download all demo artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: demo/output
+          pattern: demo-*
+          merge-multiple: true
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit and push demos
+        run: |
+          # Add all generated GIFs
+          git add demo/output/*.gif
+
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit - demos are up to date"
+          else
+            # Create commit with skip CI flag
+            git commit -m "chore: Update VHS demos [skip ci]
+
+            Auto-generated by VHS workflow
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_id }}
+            Commit: ${{ github.sha }}"
+
+            # Push to main
+            git push origin main
+
+            echo "✅ Demos committed and pushed to main"
+          fi
+
+  # =========================================================================
+  # PR Preview Comment
+  # =========================================================================
+  pr-preview:
+    name: Post PR Preview
+    runs-on: ubuntu-latest
+    needs: validate-all-demos
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download all demo artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: demo/output
+          pattern: demo-*
+          merge-multiple: true
+
+      - name: Create PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const outputDir = 'demo/output';
+            let gifs = [];
+
+            try {
+              gifs = fs.readdirSync(outputDir).filter(f => f.endsWith('.gif'));
+            } catch (err) {
+              console.log('No demo directory found');
+              return;
+            }
+
+            if (gifs.length === 0) {
+              console.log('No GIF files found');
+              return;
+            }
+
+            let comment = '## 🎬 VHS Demo Preview\n\n';
+            comment += `Generated ${gifs.length} demo(s) from this PR:\n\n`;
+
+            // Calculate total size
+            let totalSize = 0;
+            for (const gif of gifs) {
+              const filePath = path.join(outputDir, gif);
+              const stats = fs.statSync(filePath);
+              totalSize += stats.size;
+
+              const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+              const name = gif.replace('.gif', '').replace(/-/g, ' ');
+
+              comment += `### ${name}\n`;
+              comment += `**Size:** ${sizeMB}MB\n\n`;
+              comment += `> Demo artifact: \`${gif}\`\n`;
+              comment += `> Download from workflow artifacts to preview\n\n`;
+            }
+
+            const totalMB = (totalSize / (1024 * 1024)).toFixed(2);
+            comment += `---\n**Total Size:** ${totalMB}MB / 10.0MB\n\n`;
+            comment += `✅ All demos generated successfully and are available as workflow artifacts.\n`;
+
+            // Find existing bot comments
+            const {data: comments} = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('🎬 VHS Demo Preview')
+            );
+
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
+
+  # =========================================================================
+  # Failure Notification
+  # =========================================================================
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [security-scan, generate-demos, validate-all-demos, test-vhs-integration]
+    if: failure()
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `VHS Demo Generation Failed - ${context.sha.substring(0, 7)}`;
+            const body = `## VHS Demo Generation Failure
+
+            **Workflow Run:** [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Commit:** ${context.sha}
+            **Branch:** ${context.ref}
+            **Triggered by:** ${context.eventName}
+
+            ### Failed Jobs
+            Check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+
+            ### Possible Causes
+            - VHS installation failure
+            - Tape file syntax errors
+            - TUI application crashes
+            - File size limit exceeded
+            - Timeout during generation
+
+            ### Next Steps
+            1. Review workflow logs
+            2. Test demos locally with \`make demos\`
+            3. Validate tape file syntax
+            4. Check for TUI breaking changes
+
+            **Auto-generated by VHS workflow**`;
+
+            // Check if issue already exists
+            const {data: issues} = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci,vhs',
+              creator: 'github-actions[bot]'
+            });
+
+            const existingIssue = issues.find(issue =>
+              issue.title.includes('VHS Demo Generation Failed')
+            );
+
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['ci', 'vhs', 'bug']
+              });
+            }

@@ -103,11 +103,7 @@ class InstallPlanScreen(Screen):
             Widgets for the install plan screen
         """
         # Header
-        yield Static(
-            "Installation Plan",
-            id="screen-title",
-            classes="title"
-        )
+        yield Static("Installation Plan", id="screen-title", classes="title")
 
         # Main content container
         with ScrollableContainer(id="plan-container"):
@@ -120,80 +116,38 @@ class InstallPlanScreen(Screen):
             with Container(id="summary-section", classes="section"):
                 yield Static("Installation Summary:", classes="section-title")
                 yield Static(
-                    "Loading installation plan...",
-                    id="install-summary",
-                    classes="summary-text"
+                    "Loading installation plan...", id="install-summary", classes="summary-text"
                 )
 
             # Install order section
             with Container(id="order-section", classes="section"):
                 yield Static("Installation Order:", classes="section-title")
-                yield Static(
-                    "",
-                    id="install-order-list",
-                    classes="order-list"
-                )
+                yield Static("", id="install-order-list", classes="order-list")
 
             # Progress section (hidden initially)
             with Container(id="progress-section", classes="section"):
-                yield Static(
-                    "Installing...",
-                    id="install-status",
-                    classes="status-text"
-                )
+                yield Static("Installing...", id="install-status", classes="status-text")
                 yield ProgressBar(id="install-progress", total=100)
 
             # Installation log (hidden initially)
             with ScrollableContainer(id="log-section", classes="section scrollable"):
-                yield Static(
-                    "",
-                    id="install-log",
-                    classes="log-text"
-                )
+                yield Static("", id="install-log", classes="log-text")
 
             # Error messages (hidden initially)
-            yield Static(
-                "",
-                id="dependency-error",
-                classes="error-message"
-            )
+            yield Static("", id="dependency-error", classes="error-message")
 
-            yield Static(
-                "",
-                id="install-error",
-                classes="error-message"
-            )
+            yield Static("", id="install-error", classes="error-message")
 
             # Completion message (hidden initially)
-            yield Static(
-                "",
-                id="install-complete-message",
-                classes="complete-message"
-            )
+            yield Static("", id="install-complete-message", classes="complete-message")
 
         # Action buttons
         with Horizontal(id="action-buttons", classes="button-row"):
-            yield Button(
-                "Cancel",
-                id="cancel-install",
-                variant="default"
-            )
-            yield Button(
-                "Install",
-                id="confirm-install",
-                variant="primary"
-            )
-            yield Button(
-                "Close",
-                id="close-button",
-                variant="default"
-            )
+            yield Button("Cancel", id="cancel-install", variant="default")
+            yield Button("Install", id="confirm-install", variant="primary")
+            yield Button("Close", id="close-button", variant="default")
 
-            yield Button(
-                "Retry",
-                id="retry-button",
-                variant="primary"
-            )
+            yield Button("Retry", id="retry-button", variant="primary")
 
     async def on_mount(self) -> None:
         """Handle screen mount - load and display dependency tree.
@@ -370,11 +324,13 @@ Recommended: {recommended_count}
         else:
             # Mock installation for testing
             await self.log_install_step("Installation started...")
-            await self.handle_install_complete({
-                "success": True,
-                "installed": list(self.resources_to_install),
-                "failed": [],
-            })
+            await self.handle_install_complete(
+                {
+                    "success": True,
+                    "installed": list(self.resources_to_install),
+                    "failed": [],
+                }
+            )
 
     async def action_cancel(self) -> None:
         """Cancel installation.
@@ -548,7 +504,7 @@ Recommended: {recommended_count}
         Args:
             node: Tree node to toggle
         """
-        if hasattr(node, 'is_expanded'):
+        if hasattr(node, "is_expanded"):
             if node.is_expanded:
                 node.collapse()
             else:
