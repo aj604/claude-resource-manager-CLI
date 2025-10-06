@@ -5,7 +5,6 @@ security controls to prevent CWE-502, CWE-22, and other vulnerabilities.
 """
 
 import asyncio
-from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
@@ -48,6 +47,9 @@ class CatalogLoader:
         # Initialize LRU cache for resources (50 items, 10MB limit)
         self.cache = LRUCache(max_size=50, max_memory_mb=10.0)
 
+        # File content cache for _load_cached method (Path -> data)
+        self._file_cache: dict[str, dict[str, Any]] = {}
+
         # Initialize persistent cache (optional, disabled by default)
         self._persistent_cache: Optional[PersistentCache] = None
         self._persistent_cache_enabled = False
@@ -88,8 +90,18 @@ class CatalogLoader:
 
         # If index.yaml doesn't exist, try to build index from directory structure (lazy loading)
         # Check if any resource directories exist with files
-        type_dirs = ["agents", "agent", "commands", "command", "hooks", "hook",
-                     "templates", "template", "mcps", "mcp"]
+        type_dirs = [
+            "agents",
+            "agent",
+            "commands",
+            "command",
+            "hooks",
+            "hook",
+            "templates",
+            "template",
+            "mcps",
+            "mcp",
+        ]
 
         has_resources = False
         for dir_name in type_dirs:
@@ -124,7 +136,7 @@ class CatalogLoader:
             "command": ["commands", "command"],
             "hook": ["hooks", "hook"],
             "template": ["templates", "template"],
-            "mcp": ["mcps", "mcp"]
+            "mcp": ["mcps", "mcp"],
         }
 
         for resource_type, dir_names in type_dirs.items():
@@ -180,7 +192,7 @@ class CatalogLoader:
             "command": ["commands", "command"],
             "hook": ["hooks", "hook"],
             "template": ["templates", "template"],
-            "mcp": ["mcps", "mcp"]
+            "mcp": ["mcps", "mcp"],
         }
 
         dir_names = type_dir_map.get(resource_type, [])
@@ -216,8 +228,18 @@ class CatalogLoader:
 
         # Collect files to load (check both singular and plural dirs)
         yaml_files = []
-        for type_dir_name in ["agents", "commands", "hooks", "templates", "mcps",
-                               "agent", "command", "hook", "template", "mcp"]:
+        for type_dir_name in [
+            "agents",
+            "commands",
+            "hooks",
+            "templates",
+            "mcps",
+            "agent",
+            "command",
+            "hook",
+            "template",
+            "mcp",
+        ]:
             type_dir = self.catalog_path / type_dir_name
             if type_dir.exists():
                 yaml_files.extend(list(type_dir.glob("*.yaml"))[:count])
@@ -239,9 +261,8 @@ class CatalogLoader:
 
         return resources
 
-    @lru_cache(maxsize=50)
     def _load_cached(self, path: Path) -> dict[str, Any]:
-        """Load file with LRU caching.
+        """Load file with caching to avoid re-parsing same files.
 
         Args:
             path: Path to YAML file
@@ -249,7 +270,16 @@ class CatalogLoader:
         Returns:
             Parsed YAML data
         """
-        return load_yaml_safe(path)
+        # Use string path as cache key (Path objects aren't hashable in all contexts)
+        cache_key = str(path)
+
+        if cache_key in self._file_cache:
+            return self._file_cache[cache_key]
+
+        # Load and cache the result
+        data = load_yaml_safe(path)
+        self._file_cache[cache_key] = data
+        return data
 
     def _load_resource_file(self, path: Path) -> dict[str, Any]:
         """Load a single resource file.
@@ -284,7 +314,9 @@ class CatalogLoader:
 
     # Cache management methods for performance benchmarks
 
-    def get_cached_resource(self, resource_id: str, resource_type: Optional[str] = None) -> Optional[dict[str, Any]]:
+    def get_cached_resource(
+        self, resource_id: str, resource_type: Optional[str] = None
+    ) -> Optional[dict[str, Any]]:
         """Get resource from cache, caching it if not already cached.
 
         Args:
@@ -317,9 +349,9 @@ class CatalogLoader:
         self._last_was_hit = False
 
         # Create placeholder and cache it
-        placeholder = {'id': resource_id}
+        placeholder = {"id": resource_id}
         if resource_type:
-            placeholder['type'] = resource_type
+            placeholder["type"] = resource_type
 
         self.cache.set(cache_key, placeholder)
         return placeholder
@@ -331,12 +363,12 @@ class CatalogLoader:
             resource: Resource dict to cache (must have 'id' field)
             resource_type: Optional resource type (overrides 'type' field in resource)
         """
-        resource_id = resource.get('id', '')
+        resource_id = resource.get("id", "")
         if not resource_id:
             return  # Skip resources without ID
 
         # Use type from argument or resource dict
-        rtype = resource_type or resource.get('type', '')
+        rtype = resource_type or resource.get("type", "")
 
         # Create composite key if type is provided
         if rtype:
@@ -346,7 +378,9 @@ class CatalogLoader:
 
         self.cache.set(cache_key, resource)
 
-    def invalidate_cache(self, resource_id: Optional[str] = None, resource_type: Optional[str] = None) -> None:
+    def invalidate_cache(
+        self, resource_id: Optional[str] = None, resource_type: Optional[str] = None
+    ) -> None:
         """Invalidate specific cache entry or entire cache.
 
         Args:
@@ -377,11 +411,11 @@ class CatalogLoader:
             Dict with cache stats (hit_rate, size, memory_usage)
         """
         return {
-            'hit_rate': self.cache.get_hit_rate(),
-            'size': len(self.cache),
-            'memory_usage_mb': self.cache.get_memory_usage_mb(),
-            'hit_count': self.cache.hit_count,
-            'miss_count': self.cache.miss_count,
+            "hit_rate": self.cache.get_hit_rate(),
+            "size": len(self.cache),
+            "memory_usage_mb": self.cache.get_memory_usage_mb(),
+            "hit_count": self.cache.hit_count,
+            "miss_count": self.cache.miss_count,
         }
 
     def set_cache_memory_limit(self, max_memory_bytes: float) -> None:
@@ -426,11 +460,11 @@ class CatalogLoader:
 
         # Save entire cache to disk
         cache_data = {
-            'resources': dict(self.cache.cache),
-            'hit_count': self.cache.hit_count,
-            'miss_count': self.cache.miss_count,
+            "resources": dict(self.cache.cache),
+            "hit_count": self.cache.hit_count,
+            "miss_count": self.cache.miss_count,
         }
-        self._persistent_cache.set('catalog_cache', cache_data)
+        self._persistent_cache.set("catalog_cache", cache_data)
 
     def load_cache(self) -> bool:
         """Load cache from disk (if persistent cache is enabled).
@@ -441,17 +475,17 @@ class CatalogLoader:
         if not self._persistent_cache_enabled or not self._persistent_cache:
             return False
 
-        cache_data = self._persistent_cache.get('catalog_cache')
+        cache_data = self._persistent_cache.get("catalog_cache")
         if not cache_data:
             return False
 
         # Restore cache
-        resources = cache_data.get('resources', {})
+        resources = cache_data.get("resources", {})
         for key, value in resources.items():
             self.cache.set(key, value)
 
-        self.cache.hit_count = cache_data.get('hit_count', 0)
-        self.cache.miss_count = cache_data.get('miss_count', 0)
+        self.cache.hit_count = cache_data.get("hit_count", 0)
+        self.cache.miss_count = cache_data.get("miss_count", 0)
 
         return True
 

@@ -5,7 +5,9 @@ All paths must stay within ~/.claude/ directory.
 """
 
 from pathlib import Path
+
 import pytest
+
 from claude_resource_manager.utils.security import SecurityError, validate_install_path
 
 
@@ -31,9 +33,7 @@ class TestPathSecurityControls:
                 or "path" in str(exc_info.value).lower()
             )
 
-    def test_WHEN_absolute_path_outside_base_THEN_blocked(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_absolute_path_outside_base_THEN_blocked(self, temp_install_dir: Path):
         """
         GIVEN: Absolute path outside base directory
         WHEN: Path validation is performed
@@ -51,9 +51,7 @@ class TestPathSecurityControls:
             with pytest.raises((ValueError, SecurityError)):
                 validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_symlink_escape_THEN_blocked(
-        self, temp_install_dir: Path, tmp_path: Path
-    ):
+    def test_WHEN_symlink_escape_THEN_blocked(self, temp_install_dir: Path, tmp_path: Path):
         """
         GIVEN: Symlink pointing outside base directory
         WHEN: Path resolution is performed
@@ -77,9 +75,7 @@ class TestPathSecurityControls:
             except OSError:
                 pytest.skip("Cannot create symlinks")
 
-    def test_WHEN_valid_path_THEN_allowed(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_valid_path_THEN_allowed(self, temp_install_dir: Path):
         """
         GIVEN: Valid path within base directory
         WHEN: Path validation is performed
@@ -97,9 +93,7 @@ class TestPathSecurityControls:
             result = validate_install_path(path, temp_install_dir)
             assert result.is_relative_to(temp_install_dir)
 
-    def test_WHEN_install_path_normalized_THEN_safe(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_install_path_normalized_THEN_safe(self, temp_install_dir: Path):
         """
         GIVEN: Path with redundant elements (., .., etc.)
         WHEN: Path is normalized
@@ -117,9 +111,7 @@ class TestPathSecurityControls:
             assert result.is_relative_to(temp_install_dir)
             assert ".." not in str(result)
 
-    def test_WHEN_dot_dot_in_path_THEN_rejected(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_dot_dot_in_path_THEN_rejected(self, temp_install_dir: Path):
         """
         GIVEN: Path containing .. that escapes base
         WHEN: Path validation is performed
@@ -136,9 +128,7 @@ class TestPathSecurityControls:
             with pytest.raises((ValueError, SecurityError)):
                 validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_null_byte_in_path_THEN_rejected(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_null_byte_in_path_THEN_rejected(self, temp_install_dir: Path):
         """
         GIVEN: Path containing null byte
         WHEN: Path validation is performed
@@ -154,9 +144,7 @@ class TestPathSecurityControls:
             with pytest.raises((ValueError, SecurityError)):
                 validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_windows_path_on_unix_THEN_handled(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_windows_path_on_unix_THEN_handled(self, temp_install_dir: Path):
         """
         GIVEN: Windows-style path on Unix system
         WHEN: Path validation is performed
@@ -175,9 +163,7 @@ class TestPathSecurityControls:
                 with pytest.raises((ValueError, SecurityError)):
                     validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_relative_path_THEN_resolved_safely(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_relative_path_THEN_resolved_safely(self, temp_install_dir: Path):
         """
         GIVEN: Relative path
         WHEN: Path is resolved
@@ -191,9 +177,7 @@ class TestPathSecurityControls:
         assert result.is_absolute()
         assert result.is_relative_to(temp_install_dir)
 
-    def test_WHEN_hidden_files_THEN_allowed_in_base(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_hidden_files_THEN_allowed_in_base(self, temp_install_dir: Path):
         """
         GIVEN: Path to hidden file (starting with .)
         WHEN: File is within base directory
@@ -209,15 +193,12 @@ class TestPathSecurityControls:
             result = validate_install_path(path, temp_install_dir)
             assert result.is_relative_to(temp_install_dir)
 
-    def test_WHEN_case_sensitivity_exploited_THEN_blocked(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_case_sensitivity_exploited_THEN_blocked(self, temp_install_dir: Path):
         """
         GIVEN: Path using case sensitivity to bypass checks
         WHEN: Path validation is performed
         THEN: Case variations are handled correctly
         """
-        import os
 
         # On case-insensitive systems, these could be problematic
         case_paths = [
@@ -229,9 +210,7 @@ class TestPathSecurityControls:
             with pytest.raises((ValueError, SecurityError)):
                 validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_long_path_THEN_handled(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_long_path_THEN_handled(self, temp_install_dir: Path):
         """
         GIVEN: Very long path (potential DoS)
         WHEN: Path validation is performed
@@ -248,9 +227,7 @@ class TestPathSecurityControls:
         except (ValueError, OSError):
             pass  # Acceptable to reject
 
-    def test_WHEN_special_device_files_THEN_rejected(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_special_device_files_THEN_rejected(self, temp_install_dir: Path):
         """
         GIVEN: Path to special device files
         WHEN: Path validation is performed
@@ -269,9 +246,7 @@ class TestPathSecurityControls:
                 with pytest.raises((ValueError, SecurityError)):
                     validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_unicode_normalization_attack_THEN_blocked(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_unicode_normalization_attack_THEN_blocked(self, temp_install_dir: Path):
         """
         GIVEN: Path with Unicode characters that normalize differently
         WHEN: Path validation is performed
@@ -280,17 +255,15 @@ class TestPathSecurityControls:
 
         # Unicode characters that normalize to .. (path traversal)
         unicode_paths = [
-            "agents/\uFE52\uFE52/secret.txt",  # Small full stop (normalizes to ..)
-            "agents/\uFF0E\uFF0E/secret.txt",  # Full-width dots (normalizes to ..)
+            "agents/\ufe52\ufe52/secret.txt",  # Small full stop (normalizes to ..)
+            "agents/\uff0e\uff0e/secret.txt",  # Full-width dots (normalizes to ..)
         ]
 
         for path in unicode_paths:
             with pytest.raises((ValueError, SecurityError)):
                 validate_install_path(path, temp_install_dir)
 
-    def test_WHEN_double_encoding_attack_THEN_blocked(
-        self, temp_install_dir: Path
-    ):
+    def test_WHEN_double_encoding_attack_THEN_blocked(self, temp_install_dir: Path):
         """
         GIVEN: Path with double-encoded characters
         WHEN: Path validation is performed

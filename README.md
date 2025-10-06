@@ -2,20 +2,59 @@
 
 A high-performance Python CLI tool with interactive TUI for managing Claude resources.
 
+## What Does It Look Like?
+
+See the Claude Resource Manager in action:
+
+### Quick Start - Complete Workflow
+![Quick Start Demo](demo/output/quick-start.gif)
+*30-second walkthrough: browse, search, select, and install resources*
+
+### Key Features
+
+#### Fuzzy Search with Typo Tolerance
+![Fuzzy Search Demo](demo/output/fuzzy-search.gif)
+*Find resources even with typos - "architet" matches "architect"*
+
+#### Multi-Select Batch Operations
+![Multi-Select Demo](demo/output/multi-select.gif)
+*Select multiple resources and install in one command*
+
+#### Category Filtering
+![Categories Demo](demo/output/categories.gif)
+*Filter by type: agents, commands, hooks, templates, MCPs*
+
+#### Built-in Help System
+![Help System Demo](demo/output/help-system.gif)
+*Press `?` for keyboard shortcuts and navigation help*
+
 ## Features
 
 ### Phase 2 Enhancements (NEW!)
 
-- **Intelligent Fuzzy Search** - Typo-tolerant searching with RapidFuzz (0.29ms, 77x faster than target)
-- **Smart Categorization** - Automatic hierarchical categorization of 331+ resources (0.77ms)
-- **Multi-Select & Batch Operations** - Select multiple resources, batch install with dependency resolution
-- **Context-Sensitive Help** - Press '?' for comprehensive keyboard shortcuts
+#### Intelligent Fuzzy Search
+Typo-tolerant searching with RapidFuzz (0.29ms, 77x faster than target)
+[See Demo](demo/output/fuzzy-search.gif)
+
+#### Smart Categorization
+Automatic hierarchical categorization of 331+ resources (0.77ms)
+[See Demo](demo/output/categories.gif)
+
+#### Multi-Select & Batch Operations
+Select multiple resources, batch install with dependency resolution
+[See Demo](demo/output/multi-select.gif)
+
+#### Context-Sensitive Help
+Press '?' for comprehensive keyboard shortcuts
+[See Demo](demo/output/help-system.gif)
+
+#### Advanced Features
 - **Advanced Sorting** - Sort by name, type, or date with ascending/descending order
 - **Exceptional Performance** - 8.4x faster startup (11.6ms), sub-millisecond search (0.32ms)
 
 ### Core Features (Phase 1)
 
-- **Interactive TUI** - Rich terminal UI powered by Textual
+- **Interactive TUI** - Rich terminal UI powered by Textual ([Demo](demo/output/quick-start.gif))
 - **Fast Search** - Sub-millisecond prefix search across 331+ resources
 - **Dependency Resolution** - Automatic dependency management with NetworkX
 - **Secure** - HTTPS-only downloads, path validation, YAML safe-loading
@@ -102,6 +141,35 @@ claude-resources search "security"
 # Show dependencies
 claude-resources deps architect
 ```
+
+## Demos
+
+All demos are generated automatically using [VHS](https://github.com/charmbracelet/vhs).
+
+### Regenerate Demos Locally
+
+```bash
+# Install VHS
+brew install vhs  # macOS
+# OR
+curl -LO https://github.com/charmbracelet/vhs/releases/latest/download/vhs_Linux_x86_64.tar.gz
+tar -xzf vhs_Linux_x86_64.tar.gz && sudo mv vhs /usr/local/bin/  # Linux
+
+# Generate all demos
+make demos
+
+# Generate specific demo
+make demo-quick-start
+make demo-fuzzy-search
+make demo-multi-select
+make demo-categories
+make demo-help-system
+
+# Clean output
+make demo-clean
+```
+
+See [demo/README.md](demo/README.md) for more details and [docs/DEMOS.md](docs/DEMOS.md) for comprehensive documentation.
 
 ## Development
 

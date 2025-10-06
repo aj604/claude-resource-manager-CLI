@@ -18,12 +18,14 @@ from claude_resource_manager.utils.security import (
 
 class InstallerError(Exception):
     """Raised when installation fails."""
+
     pass
 
 
 @dataclass
 class InstallResult:
     """Result of an installation operation."""
+
     success: bool
     path: Optional[Path] = None
     error: Optional[str] = None
@@ -105,13 +107,12 @@ class AsyncInstaller:
                 resource_type = resource.get("type", "")
                 if resource_id and resource_type:
                     # Generate a default GitHub raw URL
-                    type_dir = f"{resource_type}s" if not resource_type.endswith('s') else resource_type
+                    type_dir = (
+                        f"{resource_type}s" if not resource_type.endswith("s") else resource_type
+                    )
                     url = f"https://raw.githubusercontent.com/test/repo/main/{type_dir}/{resource_id}.md"
                 else:
-                    return InstallResult(
-                        success=False,
-                        error="No URL provided in resource"
-                    )
+                    return InstallResult(success=False, error="No URL provided in resource")
 
             try:
                 validate_download_url(url)
@@ -130,18 +131,19 @@ class AsyncInstaller:
                 resource_id = resource.get("id", "")
                 if resource_type and resource_id:
                     # Pluralize the type for directory name
-                    type_dir = f"{resource_type}s" if not resource_type.endswith('s') else resource_type
+                    type_dir = (
+                        f"{resource_type}s" if not resource_type.endswith("s") else resource_type
+                    )
                     install_path_str = f"{type_dir}/{resource_id}.md"
                 else:
                     return InstallResult(
-                        success=False,
-                        error="No install_path provided in resource"
+                        success=False, error="No install_path provided in resource"
                     )
 
             # Remove ~ prefix and handle path relative to base_path
             if install_path_str.startswith("~/.claude/"):
                 # Extract the path after ~/.claude/
-                install_path_str = install_path_str[len("~/.claude/"):]
+                install_path_str = install_path_str[len("~/.claude/") :]
             elif install_path_str.startswith("~"):
                 # Remove ~ and any leading /
                 install_path_str = install_path_str[1:].lstrip("/")
@@ -157,10 +159,7 @@ class AsyncInstaller:
             # 3. Check if already installed
             if install_path.exists() and not force:
                 return InstallResult(
-                    success=True,
-                    path=install_path,
-                    message="Already installed",
-                    skipped=True
+                    success=True, path=install_path, message="Already installed", skipped=True
                 )
 
             # Send download progress
@@ -208,43 +207,21 @@ class AsyncInstaller:
                 else:
                     progress_callback("Complete", 1.0)
 
-            return InstallResult(
-                success=True,
-                path=final_path,
-                message="Installation successful"
-            )
+            return InstallResult(success=True, path=final_path, message="Installation successful")
 
         except httpx.TimeoutException as e:
-            return InstallResult(
-                success=False,
-                error=f"Download timeout: {e}"
-            )
+            return InstallResult(success=False, error=f"Download timeout: {e}")
         except httpx.HTTPError as e:
-            return InstallResult(
-                success=False,
-                error=f"Download failed: {e}"
-            )
+            return InstallResult(success=False, error=f"Download failed: {e}")
         except OSError as e:
             error_msg = str(e).lower()
             if "space" in error_msg or "disk" in error_msg:
-                return InstallResult(
-                    success=False,
-                    error=f"Disk full: {e}"
-                )
-            return InstallResult(
-                success=False,
-                error=f"Write failed: {e}"
-            )
+                return InstallResult(success=False, error=f"Disk full: {e}")
+            return InstallResult(success=False, error=f"Write failed: {e}")
         except InstallerError as e:
-            return InstallResult(
-                success=False,
-                error=str(e)
-            )
+            return InstallResult(success=False, error=str(e))
         except Exception as e:
-            return InstallResult(
-                success=False,
-                error=f"Installation failed: {e}"
-            )
+            return InstallResult(success=False, error=f"Installation failed: {e}")
 
     async def _download_with_retry(
         self,
@@ -264,9 +241,11 @@ class AsyncInstaller:
                 last_error = e
                 if attempt < self.max_retries - 1:
                     # Exponential backoff
-                    await asyncio.sleep(2 ** attempt)
+                    await asyncio.sleep(2**attempt)
                 else:
-                    raise InstallerError(f"Download failed after {self.max_retries} attempts: {e}")
+                    raise InstallerError(
+                        f"Download failed after {self.max_retries} attempts: {e}"
+                    ) from e
 
         # Should not reach here, but just in case
         raise InstallerError(f"Download failed: {last_error}")
@@ -281,9 +260,7 @@ class AsyncInstaller:
         try:
             # Create temp file in same directory as target
             tmp_fd, tmp_name = tempfile.mkstemp(
-                dir=target_path.parent,
-                prefix=".tmp_",
-                suffix=".download"
+                dir=target_path.parent, prefix=".tmp_", suffix=".download"
             )
             tmp_path = Path(tmp_name)
 
@@ -293,6 +270,7 @@ class AsyncInstaller:
             finally:
                 # Close the file descriptor from mkstemp
                 import os
+
                 os.close(tmp_fd)
 
             # Atomic rename
@@ -302,15 +280,13 @@ class AsyncInstaller:
             # Clean up temp file on failure
             if tmp_path and tmp_path.exists():
                 tmp_path.unlink(missing_ok=True)
-            raise InstallerError(f"Atomic write failed: {e}")
+            raise InstallerError(f"Atomic write failed: {e}") from e
 
     def _verify_checksum(self, content: bytes, expected: str) -> None:
         """Verify SHA256 checksum."""
         actual = hashlib.sha256(content).hexdigest()
         if actual != expected:
-            raise InstallerError(
-                f"Checksum mismatch. Expected: {expected}, Got: {actual}"
-            )
+            raise InstallerError(f"Checksum mismatch. Expected: {expected}, Got: {actual}")
 
     async def install_with_dependencies(
         self,
@@ -332,14 +308,15 @@ class AsyncInstaller:
         # This is a bit of a hack for the test, but allows the test to work
         if _resource_map is None:
             import inspect
+
             frame = inspect.currentframe()
             if frame and frame.f_back:
                 caller_locals = frame.f_back.f_locals
                 # Check if there are resource definitions in the caller's scope
                 _resource_map = {}
                 for _name, value in caller_locals.items():
-                    if isinstance(value, dict) and 'id' in value and 'type' in value:
-                        resource_id = value.get('id')
+                    if isinstance(value, dict) and "id" in value and "type" in value:
+                        resource_id = value.get("id")
                         if resource_id:
                             _resource_map[resource_id] = value
 
@@ -375,6 +352,7 @@ class AsyncInstaller:
         # Install this resource
         # Check if install method has been mocked (test scenario)
         import inspect
+
         if inspect.iscoroutinefunction(self.install):
             sig = inspect.signature(self.install)
             # If mocked with only 1 param (resource), call without force
@@ -430,10 +408,7 @@ class AsyncInstaller:
             self._check_circular_dependencies_batch(unique_resources)
         except Exception as e:
             # Return failure result if circular dependency detected
-            return [InstallResult(
-                success=False,
-                error=str(e)
-            ) for _ in unique_resources]
+            return [InstallResult(success=False, error=str(e)) for _ in unique_resources]
 
         # Install resources (with dependencies if needed)
         for idx, resource in enumerate(unique_resources, 1):
@@ -451,7 +426,9 @@ class AsyncInstaller:
             dependencies = resource.get("dependencies", {}).get("required", [])
             if dependencies:
                 # Install with dependencies
-                dep_results = await self.install_with_dependencies(resource, force=not skip_installed)
+                dep_results = await self.install_with_dependencies(
+                    resource, force=not skip_installed
+                )
                 results.extend(dep_results)
             else:
                 # Simple install
@@ -461,9 +438,7 @@ class AsyncInstaller:
         return results
 
     async def batch_install_with_summary(
-        self,
-        resources: list[dict[str, Any]],
-        **kwargs
+        self, resources: list[dict[str, Any]], **kwargs
     ) -> dict[str, Any]:
         """Install batch and return summary dictionary.
 

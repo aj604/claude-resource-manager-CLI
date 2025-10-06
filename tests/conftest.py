@@ -1,15 +1,16 @@
 """Shared pytest fixtures for Claude Resource Manager tests."""
 
-from pathlib import Path
-from typing import Any, Dict, List
-import pytest
-from unittest.mock import AsyncMock, Mock
-
-
 # Make SecurityError available globally for tests via builtins
 # This allows tests to use SecurityError without explicit import
 import builtins
+from pathlib import Path
+from typing import Any, Dict, List
+from unittest.mock import AsyncMock, Mock
+
+import pytest
+
 from claude_resource_manager.utils.security import SecurityError as _SecurityError
+
 builtins.SecurityError = _SecurityError
 
 
@@ -80,53 +81,63 @@ def mock_catalog_331_resources() -> List[Dict[str, Any]]:
 
     # Create 181 agents
     for i in range(181):
-        resources.append({
-            "id": f"agent-{i:03d}",
-            "type": "agent",
-            "name": f"Agent {i}",
-            "description": f"Test agent {i}",
-            "version": "v1.0.0",
-        })
+        resources.append(
+            {
+                "id": f"agent-{i:03d}",
+                "type": "agent",
+                "name": f"Agent {i}",
+                "description": f"Test agent {i}",
+                "version": "v1.0.0",
+            }
+        )
 
     # Create 52 MCPs
     for i in range(52):
-        resources.append({
-            "id": f"mcp-{i:03d}",
-            "type": "mcp",
-            "name": f"MCP {i}",
-            "description": f"Test MCP {i}",
-            "version": "v1.0.0",
-        })
+        resources.append(
+            {
+                "id": f"mcp-{i:03d}",
+                "type": "mcp",
+                "name": f"MCP {i}",
+                "description": f"Test MCP {i}",
+                "version": "v1.0.0",
+            }
+        )
 
     # Create 64 hooks
     for i in range(64):
-        resources.append({
-            "id": f"hook-{i:03d}",
-            "type": "hook",
-            "name": f"Hook {i}",
-            "description": f"Test hook {i}",
-            "version": "v1.0.0",
-        })
+        resources.append(
+            {
+                "id": f"hook-{i:03d}",
+                "type": "hook",
+                "name": f"Hook {i}",
+                "description": f"Test hook {i}",
+                "version": "v1.0.0",
+            }
+        )
 
     # Create 18 commands
     for i in range(18):
-        resources.append({
-            "id": f"command-{i:03d}",
-            "type": "command",
-            "name": f"Command {i}",
-            "description": f"Test command {i}",
-            "version": "v1.0.0",
-        })
+        resources.append(
+            {
+                "id": f"command-{i:03d}",
+                "type": "command",
+                "name": f"Command {i}",
+                "description": f"Test command {i}",
+                "version": "v1.0.0",
+            }
+        )
 
     # Create 16 templates
     for i in range(16):
-        resources.append({
-            "id": f"template-{i:03d}",
-            "type": "template",
-            "name": f"Template {i}",
-            "description": f"Test template {i}",
-            "version": "v1.0.0",
-        })
+        resources.append(
+            {
+                "id": f"template-{i:03d}",
+                "type": "template",
+                "name": f"Template {i}",
+                "description": f"Test template {i}",
+                "version": "v1.0.0",
+            }
+        )
 
     return resources
 
@@ -138,8 +149,18 @@ def temp_catalog_dir(tmp_path: Path) -> Path:
     catalog_dir.mkdir()
 
     # Create type directories (both singular and plural for compatibility)
-    for resource_type in ["agents", "commands", "hooks", "templates", "mcps",
-                          "agent", "command", "hook", "template", "mcp"]:
+    for resource_type in [
+        "agents",
+        "commands",
+        "hooks",
+        "templates",
+        "mcps",
+        "agent",
+        "command",
+        "hook",
+        "template",
+        "mcp",
+    ]:
         (catalog_dir / resource_type).mkdir()
 
     return catalog_dir

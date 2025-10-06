@@ -35,7 +35,7 @@ class Category(BaseModel):
         Returns:
             Category object extracted from the ID
         """
-        parts = resource_id.split('-')
+        parts = resource_id.split("-")
 
         if len(parts) == 1:
             # Single word ID - use as primary or 'general'
@@ -46,7 +46,7 @@ class Category(BaseModel):
             primary = parts[0]
             # Join all parts except first and last to form subcategory
             # e.g., ["mcp", "dev", "team", "architect"] -> secondary = "dev-team"
-            secondary = '-'.join(parts[1:-1])
+            secondary = "-".join(parts[1:-1])
             tags = [primary, secondary]
             return cls(primary=primary, secondary=secondary, tags=tags)
         elif len(parts) == 2:
@@ -98,9 +98,10 @@ class CategoryTree(BaseModel):
             if category.primary not in tree.categories:
                 tree.categories[category.primary] = CategoryNode()
 
-            if category.secondary and category.secondary not in tree.categories[
-                category.primary
-            ].subcategories:
+            if (
+                category.secondary
+                and category.secondary not in tree.categories[category.primary].subcategories
+            ):
                 tree.categories[category.primary].subcategories.append(category.secondary)
 
         return tree
@@ -119,7 +120,7 @@ class ResourceIndex(BaseModel):
     )
     count: int = Field(..., description="Number of resources")
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_count_matches_resources(self) -> "ResourceIndex":
         """Validate that count matches the number of resources.
 
@@ -131,11 +132,11 @@ class ResourceIndex(BaseModel):
         """
         if self.count != len(self.resources):
             raise ValueError(
-                f'Count ({self.count}) does not match number of resources ({len(self.resources)})'
+                f"Count ({self.count}) does not match number of resources ({len(self.resources)})"
             )
         return self
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_no_duplicate_ids(self) -> "ResourceIndex":
         """Validate that there are no duplicate resource IDs.
 
@@ -145,9 +146,9 @@ class ResourceIndex(BaseModel):
         Raises:
             ValueError: If duplicate IDs are found
         """
-        ids = [r.get('id') for r in self.resources if 'id' in r]
+        ids = [r.get("id") for r in self.resources if "id" in r]
         if len(ids) != len(set(ids)):
-            raise ValueError('Duplicate resource IDs found in index')
+            raise ValueError("Duplicate resource IDs found in index")
         return self
 
 
@@ -162,7 +163,7 @@ class Catalog(BaseModel):
     total: int = Field(..., description="Total number of resources")
     types: dict[str, dict[str, Any]] = Field(..., description="Resource types with counts")
 
-    @field_validator('types')
+    @field_validator("types")
     @classmethod
     def validate_type_keys(cls, v: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Validate that all type keys are valid resource types.
@@ -176,10 +177,12 @@ class Catalog(BaseModel):
         Raises:
             ValueError: If invalid type keys are found
         """
-        allowed_types = ['agent', 'command', 'hook', 'template', 'mcp']
+        allowed_types = ["agent", "command", "hook", "template", "mcp"]
         invalid_types = [t for t in v.keys() if t not in allowed_types]
 
         if invalid_types:
-            raise ValueError(f'Invalid type keys found: {invalid_types}. Must be one of {allowed_types}')
+            raise ValueError(
+                f"Invalid type keys found: {invalid_types}. Must be one of {allowed_types}"
+            )
 
         return v

@@ -25,6 +25,7 @@ class DependencyError(Exception):
     This includes missing dependencies, circular dependencies, and
     maximum depth violations.
     """
+
     pass
 
 
@@ -67,7 +68,7 @@ class DependencyResolver:
         resource_id: str,
         catalog: Catalog,
         catalog_loader,  # CatalogLoader instance
-        include_recommended: bool = False
+        include_recommended: bool = False,
     ) -> list[Resource]:
         """Resolve all dependencies for a resource.
 
@@ -120,7 +121,7 @@ class DependencyResolver:
             visited=visited,
             result=result,
             depth=0,
-            include_recommended=include_recommended
+            include_recommended=include_recommended,
         )
 
         return result
@@ -181,15 +182,13 @@ class DependencyResolver:
         # Check for cycles before sorting
         if not nx.is_directed_acyclic_graph(graph):
             cycles = self.detect_cycles(resources)
-            raise DependencyError(
-                f"Circular dependencies detected: {' -> '.join(cycles)}"
-            )
+            raise DependencyError(f"Circular dependencies detected: {' -> '.join(cycles)}")
 
         # Perform topological sort
         try:
             sorted_ids = list(nx.topological_sort(graph))
         except nx.NetworkXError as e:
-            raise DependencyError(f"Failed to compute install order: {e}")
+            raise DependencyError(f"Failed to compute install order: {e}") from e
 
         # Return resources in sorted order
         return [resource_map[rid] for rid in sorted_ids if rid in resource_map]
@@ -272,9 +271,9 @@ class DependencyResolver:
         for resource_type, type_data in catalog.types.items():
             # type_data can be dict with 'resources' list or other structures
             if isinstance(type_data, dict):
-                resources = type_data.get('resources', [])
+                resources = type_data.get("resources", [])
                 for resource in resources:
-                    if isinstance(resource, dict) and resource.get('id') == resource_id:
+                    if isinstance(resource, dict) and resource.get("id") == resource_id:
                         return resource_type
 
         return None
@@ -288,7 +287,7 @@ class DependencyResolver:
         visited: set[str],
         result: list[Resource],
         depth: int,
-        include_recommended: bool
+        include_recommended: bool,
     ):
         """Recursively resolve dependencies using depth-first search.
 
@@ -335,7 +334,7 @@ class DependencyResolver:
                 )
 
         # Parse dependencies
-        dependencies_data = resource_data.get('dependencies')
+        dependencies_data = resource_data.get("dependencies")
         if dependencies_data:
             dependency_obj = Dependency(**dependencies_data)
 
@@ -356,7 +355,7 @@ class DependencyResolver:
                     visited=visited,
                     result=result,
                     depth=depth + 1,
-                    include_recommended=include_recommended
+                    include_recommended=include_recommended,
                 )
 
             # Resolve recommended dependencies if requested
@@ -373,7 +372,7 @@ class DependencyResolver:
                                 visited=visited,
                                 result=result,
                                 depth=depth + 1,
-                                include_recommended=include_recommended
+                                include_recommended=include_recommended,
                             )
                         except DependencyError:
                             # Recommended dependencies are optional - continue if not found
@@ -388,4 +387,4 @@ class DependencyResolver:
         except Exception as e:
             raise DependencyError(
                 f"Failed to create Resource object for '{resource_id}': {e}"
-            )
+            ) from e

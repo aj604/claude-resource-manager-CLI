@@ -30,6 +30,9 @@ from textual.widgets import (
     Static,
 )
 
+# Accessibility imports
+from claude_resource_manager.tui.widgets.aria_live import AriaLiveRegion, ScreenReaderAnnouncer
+
 
 class BrowserScreen(Screen):
     """Main resource browsing screen with search, filter, and preview capabilities.
@@ -71,14 +74,11 @@ class BrowserScreen(Screen):
 
     # Responsive layout breakpoints
     NARROW_WIDTH = 80  # Hide preview pane below this width
-    MIN_WIDTH = 40     # Minimum terminal width
-    MIN_HEIGHT = 10    # Minimum terminal height
+    MIN_WIDTH = 40  # Minimum terminal width
+    MIN_HEIGHT = 10  # Minimum terminal height
 
     def __init__(
-        self,
-        catalog_loader: Optional[Any] = None,
-        search_engine: Optional[Any] = None,
-        **kwargs
+        self, catalog_loader: Optional[Any] = None, search_engine: Optional[Any] = None, **kwargs
     ):
         """Initialize the browser screen.
 
@@ -88,8 +88,8 @@ class BrowserScreen(Screen):
             **kwargs: Additional arguments passed to Screen
         """
         # Set the screen name before calling super().__init__
-        if 'name' not in kwargs:
-            kwargs['name'] = 'browser'
+        if "name" not in kwargs:
+            kwargs["name"] = "browser"
         super().__init__(**kwargs)
         self.catalog_loader = catalog_loader
         self.search_engine = search_engine
@@ -111,6 +111,9 @@ class BrowserScreen(Screen):
         # Load saved preferences
         self._load_preferences()
 
+        # Accessibility
+        self.screen_reader: Optional[ScreenReaderAnnouncer] = None
+
     def compose(self) -> ComposeResult:
         """Compose the browser screen UI.
 
@@ -124,14 +127,11 @@ class BrowserScreen(Screen):
             f"⚠️ Terminal too small! Minimum size: {self.MIN_WIDTH}x{self.MIN_HEIGHT}\n"
             "Please resize your terminal window.",
             id="size-warning",
-            classes="hidden error-message"
+            classes="hidden error-message",
         )
 
         # Search input
-        yield Input(
-            placeholder="Search resources...",
-            id="search-input"
-        )
+        yield Input(placeholder="Search resources...", id="search-input")
 
         # Filter buttons container
         with Horizontal(id="filter-buttons"):
@@ -169,6 +169,9 @@ class BrowserScreen(Screen):
         # Install button (hidden by default)
         yield Button("Install Selected", id="install-selected-button", classes="hidden")
 
+        # ARIA live region for screen reader announcements
+        yield AriaLiveRegion(id="aria-live-region")
+
         yield Footer()
 
     async def on_mount(self) -> None:
@@ -185,6 +188,11 @@ class BrowserScreen(Screen):
         table = self.query_one(DataTable)
         table.add_columns("", "Name", "Type", "Description", "Version")
         table.cursor_type = "row"
+
+        # Setup accessibility - screen reader announcer
+        live_region = self.query_one("#aria-live-region", AriaLiveRegion)
+        if live_region:
+            self.screen_reader = ScreenReaderAnnouncer(live_region)
 
         # Show loading indicator
         loading = self.query_one("#loading-indicator", Static)
@@ -208,6 +216,10 @@ class BrowserScreen(Screen):
             error_display = self.query_one("#error-message", Static)
             error_display.update(f"Error loading resources: {str(e)}")
             error_display.remove_class("hidden")
+
+            # Announce error to screen reader
+            if self.screen_reader:
+                self.screen_reader.announce(f"Error: {str(e)}", assertive=True)
         finally:
             # Hide loading indicator
             loading.add_class("hidden")
@@ -340,20 +352,27 @@ class BrowserScreen(Screen):
         search_input.focus()
 
     async def action_clear_search(self) -> None:
-        """Clear the search input and return focus to the table.
+        """Clear the search input and handle focus appropriately.
 
-        Triggered by the Escape key when in the search box. Clears
-        the search query and shows all resources again.
+        Triggered by the Escape key. Behavior depends on focus and search state:
+        - If search input has focus AND has text → clear text, keep focus
+        - If search input has focus AND empty → blur focus, return to table
+        - If search input doesn't have focus → do nothing (prevents interference)
         """
-        search_input = self.query_one(Input)
-        search_input.value = ""
+        search_input = self.query_one("#search-input", Input)
 
-        # Return focus to table
-        table = self.query_one(DataTable)
-        table.focus()
+        # Only act if search has focus
+        if not search_input.has_focus:
+            return
 
-        # Show all resources
-        await self.perform_search("")
+        if search_input.value:
+            # Clear text, keep focus
+            search_input.value = ""
+            await self.perform_search("")
+        else:
+            # Already empty, blur and return to table
+            table = self.query_one("#resource-table", DataTable)
+            table.focus()
 
     async def action_toggle_select(self) -> None:
         """Toggle multi-select for the current resource.
@@ -381,6 +400,13 @@ class BrowserScreen(Screen):
                 # Update checkbox cell in the table (first column, index 0)
                 row_key = table.get_row_at(current_row)
                 table.update_cell_at((current_row, 0), new_checkbox)
+
+                # Announce selection change to screen reader
+                if self.screen_reader:
+                    resource_name = resource.get("name", resource_id)
+                    resource_type = resource.get("type", "resource")
+                    is_selected = resource_id in self.selected_resources  # After toggle, is it selected?
+                    self.screen_reader.announce_selection(resource_name, is_selected)
 
                 # Update status bar
                 await self.update_status_bar()
@@ -436,12 +462,18 @@ class BrowserScreen(Screen):
             else:
                 # Fallback: simple filtering
                 self.filtered_resources = [
-                    r for r in self.resources
+                    r
+                    for r in self.resources
                     if query.lower() in r.get("name", "").lower()
                     or query.lower() in r.get("description", "").lower()
                 ]
 
-            await self.populate_resource_list()
+            # Reapply current sort if one is active
+            current_sort_field = getattr(self, '_sort_field', None)
+            if current_sort_field:
+                await self.sort_by(current_sort_field)
+            else:
+                await self.populate_resource_list()
 
         except Exception as e:
             # Show search error
@@ -475,11 +507,23 @@ class BrowserScreen(Screen):
             self.filtered_resources = list(self.resources)
         else:
             self.filtered_resources = [
-                r for r in self.resources
-                if r.get("type", "").lower() == self.current_filter
+                r for r in self.resources if r.get("type", "").lower() == self.current_filter
             ]
 
-        await self.populate_resource_list()
+        # Reapply current sort if one is active (but don't announce it)
+        current_sort_field = getattr(self, '_sort_field', None)
+        if current_sort_field:
+            # Temporarily disable sort announcement
+            should_announce_sort = False
+            await self.sort_by(current_sort_field)
+        else:
+            await self.populate_resource_list()
+
+        # Announce category filter to screen reader (after sort so it doesn't get overwritten)
+        if self.screen_reader:
+            count = len(self.filtered_resources)
+            category_label = resource_type.capitalize() + "s" if resource_type != "all" else "All resources"
+            self.screen_reader.announce(f"Filtered to: {category_label} ({count} items)")
 
     async def on_resource_selected(self, row_index: int) -> None:
         """Handle resource selection change.
@@ -611,6 +655,13 @@ class BrowserScreen(Screen):
         if event.input.id == "search-input":
             await self.perform_search(event.value)
 
+            # Announce search results to screen reader
+            if self.screen_reader and event.input.id == "search-input":
+                count = len(self.filtered_resources)
+                query = event.value
+                if query.strip():
+                    self.screen_reader.announce(f"Found {count} resources matching '{query}'")
+
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses.
 
@@ -646,7 +697,7 @@ class BrowserScreen(Screen):
         Returns:
             Maximum selections limit (None = unlimited)
         """
-        return getattr(self, '_max_selections', None)
+        return getattr(self, "_max_selections", None)
 
     @max_selections.setter
     def max_selections(self, value: Optional[int]) -> None:
@@ -663,7 +714,7 @@ class BrowserScreen(Screen):
         Returns:
             True if selection can proceed, False if limit reached
         """
-        max_sel = getattr(self, '_max_selections', None)
+        max_sel = getattr(self, "_max_selections", None)
         if max_sel is not None and len(self.selected_resources) >= max_sel:
             self.notify(f"Maximum selections ({max_sel}) reached", severity="warning")
             return False
@@ -675,7 +726,7 @@ class BrowserScreen(Screen):
         Adds all resources in filtered_resources to the selected_resources set.
         Respects max_selections limit if set.
         """
-        max_sel = getattr(self, '_max_selections', None)
+        max_sel = getattr(self, "_max_selections", None)
         for resource in self.filtered_resources:
             resource_id = resource.get("id", resource.get("name"))
             if resource_id:
@@ -718,7 +769,7 @@ class BrowserScreen(Screen):
         Preserves selections during sort.
         """
         # Ensure filtered_resources is initialized
-        if not hasattr(self, 'filtered_resources') or self.filtered_resources is None:
+        if not hasattr(self, "filtered_resources") or self.filtered_resources is None:
             self.filtered_resources = []
 
         # Valid sort fields
@@ -727,14 +778,15 @@ class BrowserScreen(Screen):
             field = "name"
 
         # Get or initialize sort state
-        current_sort_field = getattr(self, '_sort_field', None)
-        current_sort_reverse = getattr(self, '_sort_reverse', False)
+        current_sort_field = getattr(self, "_sort_field", None)
+        current_sort_reverse = getattr(self, "_sort_reverse", False)
 
-        # Toggle sort direction if same field, otherwise reset to ascending
+        # Toggle sort direction if same field, otherwise set default direction
         if current_sort_field == field:
             self._sort_reverse = not current_sort_reverse
         else:
-            self._sort_reverse = False
+            # Default direction: descending for 'updated' (newest first), ascending for others
+            self._sort_reverse = True if field == "updated" else False
 
         # Always set the field
         self._sort_field = field
@@ -743,29 +795,28 @@ class BrowserScreen(Screen):
         try:
             if field == "name":
                 self.filtered_resources.sort(
-                    key=lambda r: r.get("name", r.get("id", "")).lower(),
-                    reverse=self._sort_reverse
+                    key=lambda r: r.get("name", r.get("id", "")).lower(), reverse=self._sort_reverse
                 )
             elif field == "type":
                 self.filtered_resources.sort(
-                    key=lambda r: r.get("type", "").lower(),
-                    reverse=self._sort_reverse
+                    key=lambda r: r.get("type", "").lower(), reverse=self._sort_reverse
                 )
             elif field == "updated":
                 self.filtered_resources.sort(
-                    key=lambda r: r.get("updated", ""),
-                    reverse=self._sort_reverse
+                    key=lambda r: r.get("updated", ""), reverse=self._sort_reverse
                 )
             elif field == "version":
                 self.filtered_resources.sort(
-                    key=lambda r: r.get("version", ""),
-                    reverse=self._sort_reverse
+                    key=lambda r: r.get("version", ""), reverse=self._sort_reverse
                 )
         except Exception:
             # Fallback to name if sorting fails
-            self.filtered_resources.sort(
-                key=lambda r: r.get("name", r.get("id", "")).lower()
-            )
+            self.filtered_resources.sort(key=lambda r: r.get("name", r.get("id", "")).lower())
+
+        # Announce sort order to screen reader
+        if self.screen_reader:
+            direction = "descending" if self._sort_reverse else "ascending"
+            self.screen_reader.announce(f"Sorted by {field}, {direction} order")
 
         # Refresh the table
         await self.populate_resource_list()
@@ -796,7 +847,7 @@ class BrowserScreen(Screen):
         sort_options = ["name", "type", "updated"]
 
         # Get current sort from existing state
-        current_sort_field = getattr(self, '_sort_field', 'name')
+        current_sort_field = getattr(self, "_sort_field", "name")
 
         # Find next option
         try:
@@ -814,12 +865,8 @@ class BrowserScreen(Screen):
         self.app.call_later(self._save_preferences)
 
         # Notify user
-        direction = "↓" if getattr(self, '_sort_reverse', False) else "↑"
-        self.notify(
-            f"Sorted by {next_field} {direction}",
-            title="Sort Applied",
-            timeout=2
-        )
+        direction = "↓" if getattr(self, "_sort_reverse", False) else "↑"
+        self.notify(f"Sorted by {next_field} {direction}", title="Sort Applied", timeout=2)
 
     def action_toggle_preview(self) -> None:
         """Toggle preview pane visibility.
@@ -909,7 +956,7 @@ class BrowserScreen(Screen):
             config_path = Path.home() / ".config" / "claude-resources" / "settings.json"
 
             if config_path.exists():
-                with open(config_path, "r") as f:
+                with open(config_path) as f:
                     prefs = json.load(f)
 
                 # Load sort preferences (use existing field names)
@@ -942,8 +989,8 @@ class BrowserScreen(Screen):
             config_path = config_dir / "settings.json"
 
             # Use existing _sort_field and _sort_reverse attributes
-            sort_field = getattr(self, '_sort_field', 'name')
-            sort_reverse = getattr(self, '_sort_reverse', False)
+            sort_field = getattr(self, "_sort_field", "name")
+            sort_reverse = getattr(self, "_sort_reverse", False)
 
             prefs = {
                 "sort_field": sort_field,

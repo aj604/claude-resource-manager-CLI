@@ -7,8 +7,7 @@ All tests will FAIL until fuzzy search is properly implemented with RapidFuzz.
 """
 
 import time
-from typing import Dict, Any, List
-import pytest
+from typing import Any, Dict, List
 
 
 class TestFuzzySearchBasicMatching:
@@ -19,12 +18,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "System architecture design specialist"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "System architecture design specialist",
+            }
+        )
 
         results = engine.search_fuzzy("architet", limit=10)
 
@@ -39,12 +40,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "mcp-dev-team",
-            "type": "agent",
-            "name": "MCP Dev Team",
-            "description": "MCP development specialists"
-        })
+        engine.index_resource(
+            {
+                "id": "mcp-dev-team",
+                "type": "agent",
+                "name": "MCP Dev Team",
+                "description": "MCP development specialists",
+            }
+        )
 
         results = engine.search_fuzzy("mcp-dev-tam", limit=10)
 
@@ -57,12 +60,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "security-reviewer",
-            "type": "agent",
-            "name": "Security Reviewer",
-            "description": "Reviews code for security vulnerabilities"
-        })
+        engine.index_resource(
+            {
+                "id": "security-reviewer",
+                "type": "agent",
+                "name": "Security Reviewer",
+                "description": "Reviews code for security vulnerabilities",
+            }
+        )
 
         results = engine.search_fuzzy("scurity", limit=10)
 
@@ -75,12 +80,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Architecture specialist"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Architecture specialist",
+            }
+        )
 
         results = engine.search_fuzzy("archittect", limit=10)
 
@@ -93,12 +100,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "System architecture designer"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "System architecture designer",
+            }
+        )
 
         results = engine.search_fuzzy("acrhtect", limit=10)
 
@@ -111,12 +120,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Architecture specialist"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Architecture specialist",
+            }
+        )
 
         results_lower = engine.search_fuzzy("architect", limit=10)
         results_upper = engine.search_fuzzy("ARCHITECT", limit=10)
@@ -134,12 +145,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "solution-architect-expert",
-            "type": "agent",
-            "name": "Solution Architect Expert",
-            "description": "Expert in solution architecture"
-        })
+        engine.index_resource(
+            {
+                "id": "solution-architect-expert",
+                "type": "agent",
+                "name": "Solution Architect Expert",
+                "description": "Expert in solution architecture",
+            }
+        )
 
         results = engine.search_fuzzy("architect", limit=10)
 
@@ -152,12 +165,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "mcp-dev-team",
-            "type": "mcp",
-            "name": "MCP Dev Team",
-            "description": "MCP development team"
-        })
+        engine.index_resource(
+            {
+                "id": "mcp-dev-team",
+                "type": "mcp",
+                "name": "MCP Dev Team",
+                "description": "MCP development team",
+            }
+        )
 
         results = engine.search_fuzzy("mcp dev team", limit=10)
 
@@ -170,12 +185,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-generator-expert",
-            "type": "agent",
-            "name": "Test Generator Expert",
-            "description": "Generates comprehensive test suites"
-        })
+        engine.index_resource(
+            {
+                "id": "test-generator-expert",
+                "type": "agent",
+                "name": "Test Generator Expert",
+                "description": "Generates comprehensive test suites",
+            }
+        )
 
         results = engine.search_fuzzy("generator", limit=10)
 
@@ -188,12 +205,14 @@ class TestFuzzySearchBasicMatching:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "code-reviewer",
-            "type": "agent",
-            "name": "Code Reviewer",
-            "description": "Reviews code for best practices and security vulnerabilities"
-        })
+        engine.index_resource(
+            {
+                "id": "code-reviewer",
+                "type": "agent",
+                "name": "Code Reviewer",
+                "description": "Reviews code for best practices and security vulnerabilities",
+            }
+        )
 
         results = engine.search_fuzzy("vulnerability", limit=10)
 
@@ -210,12 +229,14 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Architecture specialist"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Architecture specialist",
+            }
+        )
 
         # Use search_smart which includes scores
         results = engine.search_smart("architect", limit=10)
@@ -230,12 +251,14 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Architecture specialist"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Architecture specialist",
+            }
+        )
 
         results = engine.search_smart("architect", limit=10)
 
@@ -248,24 +271,30 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Main architect"
-        })
-        engine.index_resource({
-            "id": "solution-architect-expert",
-            "type": "agent",
-            "name": "Solution Architect Expert",
-            "description": "Expert solution architect"
-        })
-        engine.index_resource({
-            "id": "test-architect-helper",
-            "type": "agent",
-            "name": "Test Architect Helper",
-            "description": "Helps with test architecture"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Main architect",
+            }
+        )
+        engine.index_resource(
+            {
+                "id": "solution-architect-expert",
+                "type": "agent",
+                "name": "Solution Architect Expert",
+                "description": "Expert solution architect",
+            }
+        )
+        engine.index_resource(
+            {
+                "id": "test-architect-helper",
+                "type": "agent",
+                "name": "Test Architect Helper",
+                "description": "Helps with test architecture",
+            }
+        )
 
         results = engine.search_smart("architect", limit=10)
 
@@ -282,18 +311,22 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "Architecture specialist"
-        })
-        engine.index_resource({
-            "id": "completely-different",
-            "type": "agent",
-            "name": "Different Thing",
-            "description": "Not related at all"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "Architecture specialist",
+            }
+        )
+        engine.index_resource(
+            {
+                "id": "completely-different",
+                "type": "agent",
+                "name": "Different Thing",
+                "description": "Not related at all",
+            }
+        )
 
         # Query for "architect" with high threshold (>70)
         # This will FAIL until threshold parameter is implemented
@@ -309,18 +342,22 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "security-expert",
-            "type": "agent",
-            "name": "Security Expert",
-            "description": "Security specialist"
-        })
-        engine.index_resource({
-            "id": "code-reviewer",
-            "type": "agent",
-            "name": "Code Reviewer",
-            "description": "Reviews code for security issues and best practices"
-        })
+        engine.index_resource(
+            {
+                "id": "security-expert",
+                "type": "agent",
+                "name": "Security Expert",
+                "description": "Security specialist",
+            }
+        )
+        engine.index_resource(
+            {
+                "id": "code-reviewer",
+                "type": "agent",
+                "name": "Code Reviewer",
+                "description": "Reviews code for security issues and best practices",
+            }
+        )
 
         results = engine.search_smart("security", limit=10)
 
@@ -335,18 +372,22 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "architect",
-            "type": "agent",
-            "name": "Architect",
-            "description": "System architect specialist"
-        })
-        engine.index_resource({
-            "id": "code-reviewer",
-            "type": "agent",
-            "name": "Code Reviewer",
-            "description": "Reviews architecture patterns"
-        })
+        engine.index_resource(
+            {
+                "id": "architect",
+                "type": "agent",
+                "name": "Architect",
+                "description": "System architect specialist",
+            }
+        )
+        engine.index_resource(
+            {
+                "id": "code-reviewer",
+                "type": "agent",
+                "name": "Code Reviewer",
+                "description": "Reviews architecture patterns",
+            }
+        )
 
         results = engine.search_smart("architect", limit=10)
 
@@ -363,12 +404,14 @@ class TestFuzzySearchScoringAndRanking:
         engine = SearchEngine()
         # Create 20 resources with "test" in the name
         for i in range(20):
-            engine.index_resource({
-                "id": f"test-resource-{i:03d}",
-                "type": "agent",
-                "name": f"Test Resource {i}",
-                "description": f"Test resource number {i}"
-            })
+            engine.index_resource(
+                {
+                    "id": f"test-resource-{i:03d}",
+                    "type": "agent",
+                    "name": f"Test Resource {i}",
+                    "description": f"Test resource number {i}",
+                }
+            )
 
         results = engine.search_fuzzy("test", limit=10)
 
@@ -382,18 +425,12 @@ class TestFuzzySearchScoringAndRanking:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-001",
-            "type": "agent",
-            "name": "Test Agent",
-            "description": "Test agent 1"
-        })
-        engine.index_resource({
-            "id": "test-002",
-            "type": "agent",
-            "name": "Test Agent",
-            "description": "Test agent 2"
-        })
+        engine.index_resource(
+            {"id": "test-001", "type": "agent", "name": "Test Agent", "description": "Test agent 1"}
+        )
+        engine.index_resource(
+            {"id": "test-002", "type": "agent", "name": "Test Agent", "description": "Test agent 2"}
+        )
 
         results1 = engine.search_smart("test agent", limit=10)
         results2 = engine.search_smart("test agent", limit=10)
@@ -407,7 +444,9 @@ class TestFuzzySearchScoringAndRanking:
 class TestFuzzySearchPerformance:
     """Tests for fuzzy search performance benchmarks."""
 
-    def test_WHEN_331_resources_THEN_under_20ms(self, mock_catalog_331_resources: List[Dict[str, Any]]):
+    def test_WHEN_331_resources_THEN_under_20ms(
+        self, mock_catalog_331_resources: List[Dict[str, Any]]
+    ):
         """Fuzzy search should complete in <20ms for 331 resources."""
         from claude_resource_manager.core.search_engine import SearchEngine
 
@@ -430,12 +469,14 @@ class TestFuzzySearchPerformance:
         engine = SearchEngine()
         # Create 1000 resources
         for i in range(1000):
-            engine.index_resource({
-                "id": f"resource-{i:04d}",
-                "type": "agent",
-                "name": f"Resource {i}",
-                "description": f"Test resource number {i}"
-            })
+            engine.index_resource(
+                {
+                    "id": f"resource-{i:04d}",
+                    "type": "agent",
+                    "name": f"Resource {i}",
+                    "description": f"Test resource number {i}",
+                }
+            )
 
         start = time.perf_counter()
         results = engine.search_fuzzy("resource", limit=50)
@@ -450,8 +491,9 @@ class TestFuzzySearchPerformance:
         self, mock_catalog_331_resources: List[Dict[str, Any]]
     ):
         """Fuzzy search should maintain performance under concurrent load."""
-        from claude_resource_manager.core.search_engine import SearchEngine
         import concurrent.futures
+
+        from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
         for resource in mock_catalog_331_resources:
@@ -478,8 +520,9 @@ class TestFuzzySearchPerformance:
         self, mock_catalog_331_resources: List[Dict[str, Any]]
     ):
         """Fuzzy search index should be memory efficient (<100MB for 331 resources)."""
-        from claude_resource_manager.core.search_engine import SearchEngine
         import sys
+
+        from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
 
@@ -497,9 +540,9 @@ class TestFuzzySearchPerformance:
         # Test will FAIL - expects efficient memory usage
         # This is a rough check; actual memory usage is more complex
         # Allow up to 10MB for 331 resources (very conservative)
-        assert memory_increase < 10 * 1024 * 1024, (
-            f"Memory increase {memory_increase / 1024 / 1024:.2f}MB exceeds 10MB"
-        )
+        assert (
+            memory_increase < 10 * 1024 * 1024
+        ), f"Memory increase {memory_increase / 1024 / 1024:.2f}MB exceeds 10MB"
 
     def test_WHEN_cached_THEN_faster_repeat_queries(
         self, mock_catalog_331_resources: List[Dict[str, Any]]
@@ -536,12 +579,9 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-resource",
-            "type": "agent",
-            "name": "Test",
-            "description": "Test resource"
-        })
+        engine.index_resource(
+            {"id": "test-resource", "type": "agent", "name": "Test", "description": "Test resource"}
+        )
 
         results = engine.search_fuzzy("", limit=10)
 
@@ -553,12 +593,14 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-resource",
-            "type": "agent",
-            "name": "Test Resource",
-            "description": "Test description"
-        })
+        engine.index_resource(
+            {
+                "id": "test-resource",
+                "type": "agent",
+                "name": "Test Resource",
+                "description": "Test description",
+            }
+        )
 
         special_chars = ["@#$%", "!!!!", "***", "...", "---", "___", "///"]
 
@@ -572,12 +614,14 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "cafe-architect",
-            "type": "agent",
-            "name": "Café Architect",
-            "description": "Architecture specialist with café ☕"
-        })
+        engine.index_resource(
+            {
+                "id": "cafe-architect",
+                "type": "agent",
+                "name": "Café Architect",
+                "description": "Architecture specialist with café ☕",
+            }
+        )
 
         results = engine.search_fuzzy("café", limit=10)
 
@@ -590,12 +634,14 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-resource",
-            "type": "agent",
-            "name": "Test",
-            "description": "Test description"
-        })
+        engine.index_resource(
+            {
+                "id": "test-resource",
+                "type": "agent",
+                "name": "Test",
+                "description": "Test description",
+            }
+        )
 
         long_query = "architect " * 20  # 200+ characters
 
@@ -612,12 +658,14 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "a-test-resource",
-            "type": "agent",
-            "name": "A Test Resource",
-            "description": "A resource for testing"
-        })
+        engine.index_resource(
+            {
+                "id": "a-test-resource",
+                "type": "agent",
+                "name": "A Test Resource",
+                "description": "A resource for testing",
+            }
+        )
 
         results = engine.search_fuzzy("a", limit=10)
 
@@ -630,33 +678,32 @@ class TestFuzzySearchEdgeCases:
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-resource",
-            "type": "agent",
-            "name": "Test",
-            "description": "Test"
-        })
+        engine.index_resource(
+            {"id": "test-resource", "type": "agent", "name": "Test", "description": "Test"}
+        )
 
         whitespace_queries = ["   ", "\t", "\n", "  \t\n  "]
 
         for query in whitespace_queries:
             results = engine.search_fuzzy(query, limit=10)
             # Test will FAIL - expects empty results for whitespace
-            assert results == [] or len(results) == 0, (
-                f"Whitespace query '{repr(query)}' should return empty"
-            )
+            assert (
+                results == [] or len(results) == 0
+            ), f"Whitespace query '{repr(query)}' should return empty"
 
     def test_WHEN_no_matches_THEN_returns_empty_list(self):
         """Fuzzy search should return empty list when no good matches exist."""
         from claude_resource_manager.core.search_engine import SearchEngine
 
         engine = SearchEngine()
-        engine.index_resource({
-            "id": "test-resource",
-            "type": "agent",
-            "name": "Test Resource",
-            "description": "A test resource"
-        })
+        engine.index_resource(
+            {
+                "id": "test-resource",
+                "type": "agent",
+                "name": "Test Resource",
+                "description": "A test resource",
+            }
+        )
 
         # Query that shouldn't match anything well
         results = engine.search_fuzzy("xyznonexistent123", limit=10)

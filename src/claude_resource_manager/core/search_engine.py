@@ -239,7 +239,9 @@ class SearchEngine:
         # Queries with numbers often create spurious matches, so use higher cutoff
         has_digits = any(c.isdigit() for c in query_lower)
         # Very long queries with mixed chars are often noise
-        is_likely_noise = len(query_lower) > 12 and has_digits and any(c.isalpha() for c in query_lower)
+        is_likely_noise = (
+            len(query_lower) > 12 and has_digits and any(c.isalpha() for c in query_lower)
+        )
 
         if is_likely_noise:
             score_cutoff = 60  # Stricter for likely noise like "xyznonexistent123"
@@ -251,7 +253,7 @@ class SearchEngine:
             self._searchable_text,
             scorer=fuzz.WRatio,
             limit=limit,
-            score_cutoff=score_cutoff
+            score_cutoff=score_cutoff,
         )
 
         # Convert to resources, sorted by score (highest first)
@@ -262,7 +264,9 @@ class SearchEngine:
 
         return results
 
-    def _search_impl(self, query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
+    def _search_impl(
+        self, query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
         """Smart search combining exact, prefix, and fuzzy strategies.
 
         This is the main search method that tries multiple strategies:
@@ -405,7 +409,9 @@ class SearchEngine:
 
         return results_with_scores[:limit]
 
-    def _apply_filters(self, resources: list[dict[str, Any]], filters: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _apply_filters(
+        self, resources: list[dict[str, Any]], filters: Optional[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Apply filters to search results.
 
         Args:
@@ -431,7 +437,9 @@ class SearchEngine:
 
         return filtered
 
-    async def search_async(self, query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None) -> list[dict[str, Any]]:
+    async def search_async(
+        self, query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
         """Async version of search for concurrent operations.
 
         Args:

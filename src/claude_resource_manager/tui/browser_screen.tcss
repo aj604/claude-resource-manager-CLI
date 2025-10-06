@@ -1,0 +1,53 @@
+/* Browser Screen Styles for Visual Polish */
+
+SelectionIndicator {
+    height: 1;
+    width: 100%;
+    content-align: right middle;
+    background: $surface;
+    color: $text;
+    padding: 0 2;
+}
+
+SelectionIndicator:focus {
+    background: $surface-lighten-1;
+}
+
+#selection-count {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+    text-style: bold;
+}
+
+/* Checkbox column styling */
+DataTable > .datatable--cursor {
+    background: $primary 20%;
+}
+
+DataTable > .datatable--hover {
+    background: $secondary 10%;
+}
+
+/* Animation for state changes */
+Button.active {
+    background: $primary;
+    color: $background;
+}
+
+/* Status bar styling */
+#status-bar {
+    dock: bottom;
+    height: 1;
+    background: $panel;
+}
+
+/* Error and warning messages */
+.error-message {
+    color: $error;
+    text-style: bold;
+}
+
+.hidden {
+    display: none;
+}

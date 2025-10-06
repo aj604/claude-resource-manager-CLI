@@ -5,6 +5,7 @@ Any use of yaml.load() is a SECURITY VULNERABILITY.
 """
 
 from pathlib import Path
+
 import pytest
 import yaml
 
@@ -12,9 +13,7 @@ import yaml
 class TestYAMLSecurityControls:
     """Critical security tests for YAML parsing."""
 
-    def test_WHEN_yaml_safe_load_THEN_passes(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_yaml_safe_load_THEN_passes(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML file with safe content
         WHEN: Loaded with yaml.safe_load()
@@ -45,6 +44,7 @@ class TestYAMLSecurityControls:
         This is a META-TEST that scans our own code for unsafe YAML usage.
         """
         import inspect
+
         from claude_resource_manager.core import catalog_loader
         from claude_resource_manager.utils import security
 
@@ -61,7 +61,7 @@ class TestYAMLSecurityControls:
             # Check that it's used with Loader parameter
             import re
 
-            unsafe_pattern = r'yaml\.load\([^,)]+\)'  # yaml.load(x) without second param
+            unsafe_pattern = r"yaml\.load\([^,)]+\)"  # yaml.load(x) without second param
             unsafe_matches = re.findall(unsafe_pattern, loader_source)
 
             assert len(unsafe_matches) == 0, f"Unsafe yaml.load() found: {unsafe_matches}"
@@ -83,9 +83,7 @@ class TestYAMLSecurityControls:
         with pytest.raises((yaml.YAMLError, ValueError, MemoryError, TimeoutError)):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_yaml_bomb_many_anchors_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_yaml_bomb_many_anchors_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML with exponential anchor expansion
         WHEN: Attempting to load
@@ -108,9 +106,7 @@ class TestYAMLSecurityControls:
         with pytest.raises((yaml.YAMLError, ValueError, MemoryError)):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_file_size_over_1mb_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_file_size_over_1mb_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML file larger than 1MB
         WHEN: Attempting to load
@@ -128,19 +124,17 @@ class TestYAMLSecurityControls:
 
         assert "size" in str(exc_info.value).lower() or "large" in str(exc_info.value).lower()
 
-    def test_WHEN_parse_time_over_5s_THEN_timeout(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_parse_time_over_5s_THEN_timeout(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML that takes >5 seconds to parse
         WHEN: Attempting to load
         THEN: Operation times out
         """
-        from claude_resource_manager.utils.security import load_yaml_safe
-
         # This is hard to test without actual slow parsing
         # Verify timeout parameter exists
         import inspect
+
+        from claude_resource_manager.utils.security import load_yaml_safe
 
         sig = inspect.signature(load_yaml_safe)
         params = sig.parameters
@@ -148,9 +142,7 @@ class TestYAMLSecurityControls:
         # Should have timeout parameter or use default
         assert "timeout" in params or hasattr(load_yaml_safe, "__defaults__")
 
-    def test_WHEN_recursive_structure_THEN_handled(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_recursive_structure_THEN_handled(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML with recursive/circular references
         WHEN: Attempting to load
@@ -170,9 +162,7 @@ class TestYAMLSecurityControls:
         with pytest.raises((yaml.YAMLError, RecursionError, ValueError)):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_arbitrary_python_object_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_arbitrary_python_object_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML attempting to instantiate Python objects
         WHEN: Attempting to load
@@ -193,9 +183,7 @@ class TestYAMLSecurityControls:
         with pytest.raises(yaml.YAMLError):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_code_execution_attempt_THEN_blocked(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_code_execution_attempt_THEN_blocked(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML attempting code execution via !!python tags
         WHEN: Attempting to load
@@ -215,9 +203,7 @@ class TestYAMLSecurityControls:
         with pytest.raises(yaml.YAMLError):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_eval_attempt_THEN_blocked(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_eval_attempt_THEN_blocked(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML attempting eval() execution
         WHEN: Attempting to load
@@ -237,9 +223,7 @@ class TestYAMLSecurityControls:
         with pytest.raises(yaml.YAMLError):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_billion_laughs_attack_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_billion_laughs_attack_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: Billion laughs attack (XML entity expansion in YAML)
         WHEN: Attempting to load
@@ -272,10 +256,10 @@ class TestYAMLSecurityControls:
         WHEN: Attempting to load
         THEN: Symlink traversal is prevented
         """
-        from claude_resource_manager.utils.security import load_yaml_safe
-
         # Create symlink to /etc/passwd (if on Unix)
         import os
+
+        from claude_resource_manager.utils.security import load_yaml_safe
 
         if os.name != "nt":  # Unix systems
             sensitive_file = Path("/etc/passwd")
@@ -290,9 +274,7 @@ class TestYAMLSecurityControls:
                 except OSError:
                     pytest.skip("Cannot create symlinks")
 
-    def test_WHEN_max_depth_exceeded_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_max_depth_exceeded_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML with excessive nesting depth
         WHEN: Attempting to load
@@ -310,9 +292,7 @@ class TestYAMLSecurityControls:
         with pytest.raises((yaml.YAMLError, RecursionError, ValueError)):
             load_yaml_safe(yaml_file)
 
-    def test_WHEN_null_bytes_in_yaml_THEN_rejected(
-        self, temp_catalog_dir: Path
-    ):
+    def test_WHEN_null_bytes_in_yaml_THEN_rejected(self, temp_catalog_dir: Path):
         """
         GIVEN: YAML containing null bytes
         WHEN: Attempting to load

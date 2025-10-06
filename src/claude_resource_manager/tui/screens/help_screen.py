@@ -16,7 +16,7 @@ from typing import Optional
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Container, ScrollableContainer, Vertical
+from textual.containers import Container, ScrollableContainer
 from textual.screen import ModalScreen
 from textual.widgets import Static
 
@@ -34,7 +34,7 @@ class HelpContentWidget(Static):
         """
         # Get the content from parent's render and convert to plain text
         content = super().render()
-        if hasattr(content, 'plain'):
+        if hasattr(content, "plain"):
             return content.plain
         return str(content)
 
@@ -131,8 +131,8 @@ class HelpScreen(ModalScreen):
             **kwargs: Additional arguments passed to ModalScreen
         """
         # Set the screen name before calling super().__init__
-        if 'name' not in kwargs:
-            kwargs['name'] = 'help'
+        if "name" not in kwargs:
+            kwargs["name"] = "help"
         super().__init__(**kwargs)
         self.context = context or "browser"
 
@@ -153,16 +153,32 @@ class HelpScreen(ModalScreen):
             with ScrollableContainer(id="help-scrollable"):
                 # Add help content as custom widget with markup
                 # Uses HelpContentWidget which returns plain text for test compatibility
-                yield HelpContentWidget(
-                    self._build_help_content(),
-                    id="help-content",
-                    markup=True
-                )
+                yield HelpContentWidget(self._build_help_content(), id="help-content", markup=True)
 
                 # Add separate section widgets for styling/testing
                 # (These are for CSS selectors, content is in help-content above)
                 for section_name in ["Navigation", "Selection", "Search"]:
                     yield Static("", classes="help-section")
+
+    def on_mount(self) -> None:
+        """Announce help dialog opening to screen readers.
+
+        This method is called when the help screen is first displayed.
+        It announces the modal opening and provides dismiss instructions.
+        """
+        # Find the browser screen's aria live region to make announcement
+        try:
+            from claude_resource_manager.tui.widgets.aria_live import AriaLiveRegion
+            # Look through screen stack to find browser screen's live region
+            for screen in self.app.screen_stack:
+                try:
+                    live_region = screen.query_one("#aria-live-region", AriaLiveRegion)
+                    live_region.announce("Help dialog opened. Press Escape to close.")
+                    break
+                except Exception:
+                    continue
+        except Exception:
+            pass  # Announcement is optional
 
     def _build_help_content(self) -> str:
         """Generate help content with all keyboard shortcuts.
@@ -189,81 +205,95 @@ class HelpScreen(ModalScreen):
             content.append("[bold]Search resources[/bold] using fuzzy matching.\n")
 
         # Navigation section
-        content.append(self._build_section(
-            "Navigation",
-            [
-                ("↑↓", "Navigate resources in the list"),
-                ("Enter", "View resource details / Open resource"),
-                ("Tab", "Switch between search box and table"),
-                ("Esc", "Cancel / Clear search / Go back"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "Navigation",
+                [
+                    ("↑↓", "Navigate resources in the list"),
+                    ("Enter", "View resource details / Open resource"),
+                    ("Tab", "Switch between search box and table"),
+                    ("Esc", "Cancel / Clear search / Go back"),
+                ],
+            )
+        )
 
         # Selection section
-        content.append(self._build_section(
-            "Selection",
-            [
-                ("Space", "Toggle selection for current resource"),
-                ("a", "Select all visible resources"),
-                ("c", "Clear all selections"),
-                ("i", "Install selected resources"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "Selection",
+                [
+                    ("Space", "Toggle selection for current resource"),
+                    ("a", "Select all visible resources"),
+                    ("c", "Clear all selections"),
+                    ("i", "Install selected resources"),
+                ],
+            )
+        )
 
         # Search and Filter section
-        content.append(self._build_section(
-            "Search & Filter",
-            [
-                ("/", "Focus search box"),
-                ("Filter buttons", "Click to filter by type (All, Agent, Command, etc.)"),
-                ("Ctrl+F", "Advanced search (fuzzy matching)"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "Search & Filter",
+                [
+                    ("/", "Focus search box"),
+                    ("Filter buttons", "Click to filter by type (All, Agent, Command, etc.)"),
+                    ("Ctrl+F", "Advanced search (fuzzy matching)"),
+                ],
+            )
+        )
 
         # Sorting section
-        content.append(self._build_section(
-            "Sorting & Ordering",
-            [
-                ("s", "Open sort menu"),
-                ("1", "Sort by name (toggle A-Z / Z-A)"),
-                ("2", "Sort by type"),
-                ("3", "Sort by date updated"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "Sorting & Ordering",
+                [
+                    ("s", "Open sort menu"),
+                    ("1", "Sort by name (toggle A-Z / Z-A)"),
+                    ("2", "Sort by type"),
+                    ("3", "Sort by date updated"),
+                ],
+            )
+        )
 
         # View controls section
-        content.append(self._build_section(
-            "View Controls",
-            [
-                ("p", "Toggle preview pane visibility"),
-                ("?", "Show this help screen"),
-                ("+/-", "Zoom in/out (if supported)"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "View Controls",
+                [
+                    ("p", "Toggle preview pane visibility"),
+                    ("?", "Show this help screen"),
+                    ("+/-", "Zoom in/out (if supported)"),
+                ],
+            )
+        )
 
         # Application commands section
-        content.append(self._build_section(
-            "Application",
-            [
-                ("q", "Quit application"),
-                ("Ctrl+C", "Force quit"),
-                ("r", "Refresh catalog"),
-            ]
-        ))
+        content.append(
+            self._build_section(
+                "Application",
+                [
+                    ("q", "Quit application"),
+                    ("Ctrl+C", "Force quit"),
+                    ("r", "Refresh catalog"),
+                ],
+            )
+        )
 
         # Browser-specific help
         if self.context == "browser":
-            content.append(self._build_section(
-                "Filter by type",
-                [
-                    ("Click 'All'", "Show all resources"),
-                    ("Click 'Agent'", "Show only agents"),
-                    ("Click 'Command'", "Show only commands"),
-                    ("Click 'Hook'", "Show only hooks"),
-                    ("Click 'Template'", "Show only templates"),
-                    ("Click 'MCP'", "Show only MCP servers"),
-                ]
-            ))
+            content.append(
+                self._build_section(
+                    "Filter by type",
+                    [
+                        ("Click 'All'", "Show all resources"),
+                        ("Click 'Agent'", "Show only agents"),
+                        ("Click 'Command'", "Show only commands"),
+                        ("Click 'Hook'", "Show only hooks"),
+                        ("Click 'Template'", "Show only templates"),
+                        ("Click 'MCP'", "Show only MCP servers"),
+                    ],
+                )
+            )
 
         # Footer
         content.append("\n[dim]Press Escape or q to close this help screen[/dim]")

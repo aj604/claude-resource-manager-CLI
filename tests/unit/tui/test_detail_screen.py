@@ -15,10 +15,11 @@ Test Coverage:
 - Error handling for missing data
 """
 
+from unittest.mock import Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from textual.widgets import Static, Button, Markdown, Tree
 from textual.app import App
+from textual.widgets import Button, Markdown
 
 from claude_resource_manager.tui.screens.detail_screen import DetailScreen
 
@@ -102,8 +103,7 @@ class TestDetailScreenInitialization:
     ):
         """Detail screen loads dependency information on mount."""
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -241,7 +241,10 @@ class TestDetailScreenDescription:
             assert description is not None
             # For Markdown widgets, just check that the resource description was set
             # The actual markdown content is in the resource dict
-            assert "architecture design specialist" in str(app.screen.resource.get("description", "")).lower()
+            assert (
+                "architecture design specialist"
+                in str(app.screen.resource.get("description", "")).lower()
+            )
 
     @pytest.mark.asyncio
     async def test_long_description_scrollable(self):
@@ -273,8 +276,7 @@ class TestDetailScreenDependencyTree:
         """Dependency tree widget is displayed."""
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -292,8 +294,7 @@ class TestDetailScreenDependencyTree:
         """Dependency tree shows required dependencies."""
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -312,8 +313,7 @@ class TestDetailScreenDependencyTree:
         """Dependency tree shows recommended dependencies differently styled."""
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -332,8 +332,7 @@ class TestDetailScreenDependencyTree:
         """Dependency info shows installation order."""
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -357,8 +356,7 @@ class TestDetailScreenDependencyTree:
             "install_order": ["simple"],
         }
         screen = DetailScreen(
-            resource=resource_no_deps,
-            dependency_resolver=mock_dependency_resolver
+            resource=resource_no_deps, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -524,8 +522,7 @@ class TestDetailScreenInstallButton:
         """Install button shows total install count (including deps)."""
         mock_dependency_resolver.resolve.return_value = dependency_tree_data
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 
@@ -615,9 +612,10 @@ class TestDetailScreenCopyFunctionality:
 
             # Mock pyperclip by patching it in sys.modules
             import sys
+
             mock_pyperclip = Mock()
             mock_pyperclip.copy = Mock()
-            sys.modules['pyperclip'] = mock_pyperclip
+            sys.modules["pyperclip"] = mock_pyperclip
 
             await app.screen.action_copy_id()
             await pilot.pause()
@@ -634,9 +632,10 @@ class TestDetailScreenCopyFunctionality:
             await pilot.pause()
 
             import sys
+
             mock_pyperclip = Mock()
             mock_pyperclip.copy = Mock()
-            sys.modules['pyperclip'] = mock_pyperclip
+            sys.modules["pyperclip"] = mock_pyperclip
 
             await app.screen.action_copy_install_command()
             await pilot.pause()
@@ -655,10 +654,7 @@ class TestDetailScreenRelatedResources:
         mock_search_engine.search.return_value = [
             {"id": "related-1", "name": "Related 1", "type": "agent"}
         ]
-        screen = DetailScreen(
-            resource=sample_resource,
-            search_engine=mock_search_engine
-        )
+        screen = DetailScreen(resource=sample_resource, search_engine=mock_search_engine)
         app = DetailScreenTestApp(screen_instance=screen)
 
         async with app.run_test() as pilot:
@@ -700,8 +696,7 @@ class TestDetailScreenErrorHandling:
         """Detail screen handles dependency resolution errors gracefully."""
         mock_dependency_resolver.resolve.side_effect = Exception("Circular dependency")
         screen = DetailScreen(
-            resource=sample_resource,
-            dependency_resolver=mock_dependency_resolver
+            resource=sample_resource, dependency_resolver=mock_dependency_resolver
         )
         app = DetailScreenTestApp(screen_instance=screen)
 

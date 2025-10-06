@@ -21,17 +21,19 @@ import yaml
 # Constants
 MAX_YAML_SIZE = 1 * 1024 * 1024  # 1MB
 YAML_TIMEOUT = 5  # seconds
-ALLOWED_DOMAINS = ['raw.githubusercontent.com']
+ALLOWED_DOMAINS = ["raw.githubusercontent.com"]
 MAX_URL_LENGTH = 2048  # Standard URL length limit
 
 
 class SecurityError(Exception):
     """Raised when a security validation fails."""
+
     pass
 
 
 class TimeoutError(Exception):
     """Raised when YAML parsing times out."""
+
     pass
 
 
@@ -71,7 +73,7 @@ def load_yaml_safe(file_path: Union[str, Path]) -> dict:
         if file_path.is_symlink():
             # Reject symlinks pointing to system files
             resolved_str = str(resolved_path)
-            sensitive_paths = ['/etc/', '/root/', '/var/', '/sys/', '/proc/']
+            sensitive_paths = ["/etc/", "/root/", "/var/", "/sys/", "/proc/"]
             for sensitive in sensitive_paths:
                 if resolved_str.startswith(sensitive):
                     raise ValueError(f"Symlink to sensitive file not allowed: {resolved_path}")
@@ -81,32 +83,35 @@ def load_yaml_safe(file_path: Union[str, Path]) -> dict:
     # Check file size
     file_size = resolved_path.stat().st_size
     if file_size > MAX_YAML_SIZE:
-        raise ValueError(f"File size ({file_size} bytes) exceeds maximum allowed size ({MAX_YAML_SIZE} bytes)")
+        raise ValueError(
+            f"File size ({file_size} bytes) exceeds maximum allowed size ({MAX_YAML_SIZE} bytes)"
+        )
 
     # Read file content and check for null bytes
     try:
-        with open(resolved_path, encoding='utf-8') as f:
+        with open(resolved_path, encoding="utf-8") as f:
             content = f.read()
     except UnicodeDecodeError as e:
         raise ValueError(f"File contains invalid UTF-8 or null bytes: {e}")
 
     # Check for null bytes
-    if '\x00' in content:
+    if "\x00" in content:
         raise ValueError("File contains null bytes")
 
     # Check for potential YAML bombs (many anchors/aliases)
-    anchor_count = content.count('&')
-    alias_count = content.count('*')
+    anchor_count = content.count("&")
+    alias_count = content.count("*")
     # Be more permissive but still catch real bombs
     if anchor_count > 3 or alias_count > 5:
         raise ValueError("Potential YAML bomb detected: excessive anchors/aliases")
 
     # Check for recursive references (anchor referencing itself)
-    if 'parent' in content and '*parent' in content:
+    if "parent" in content and "*parent" in content:
         # Simplistic check for circular references
         import re
-        anchor_pattern = r'&(\w+)'
-        alias_pattern = r'\*(\w+)'
+
+        anchor_pattern = r"&(\w+)"
+        alias_pattern = r"\*(\w+)"
         anchors = set(re.findall(anchor_pattern, content))
         aliases = set(re.findall(alias_pattern, content))
         # If same name used as both anchor and alias in proximity, likely recursive
@@ -115,7 +120,8 @@ def load_yaml_safe(file_path: Union[str, Path]) -> dict:
 
     # Set up timeout using signal (Unix-only, but tests handle this)
     import os
-    if os.name != 'nt':  # Unix systems
+
+    if os.name != "nt":  # Unix systems
         old_handler = signal.signal(signal.SIGALRM, _timeout_handler)
         signal.alarm(YAML_TIMEOUT)
 
@@ -124,7 +130,7 @@ def load_yaml_safe(file_path: Union[str, Path]) -> dict:
         # This prevents arbitrary Python object instantiation
         result = yaml.safe_load(content)
 
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)  # Cancel alarm
             signal.signal(signal.SIGALRM, old_handler)
 
@@ -136,27 +142,27 @@ def load_yaml_safe(file_path: Union[str, Path]) -> dict:
 
         return result
     except yaml.YAMLError:
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
         raise
     except TimeoutError:
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
         raise ValueError("YAML parsing timed out")
     except RecursionError:
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
         raise ValueError("YAML contains recursive structure")
     except MemoryError:
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
         raise
     except Exception:
-        if os.name != 'nt':
+        if os.name != "nt":
             signal.alarm(0)
             signal.signal(signal.SIGALRM, old_handler)
         raise
@@ -194,7 +200,7 @@ def validate_install_path(user_path: Union[str, Path], base_dir: Path) -> Path:
     import urllib.parse
 
     # Try to detect and reject URL encoded paths
-    if '%' in path_str:
+    if "%" in path_str:
         try:
             decoded = urllib.parse.unquote(path_str)
             # If decoding changed the path, it was URL encoded - reject it
@@ -209,20 +215,20 @@ def validate_install_path(user_path: Union[str, Path], base_dir: Path) -> Path:
 
     # Normalize Unicode to prevent homograph attacks
     # This converts full-width characters to ASCII equivalents
-    normalized_path = unicodedata.normalize('NFKC', path_str)
+    normalized_path = unicodedata.normalize("NFKC", path_str)
 
     # Check if normalization changed the path significantly
     # If Unicode normalization resulted in '..' appearing, reject it
-    if '..' not in path_str and '..' in normalized_path:
+    if ".." not in path_str and ".." in normalized_path:
         raise SecurityError("Unicode normalization attack detected")
 
     # Additional Unicode check: Reject paths that contain '..' and had any
     # non-ASCII characters (even if already normalized in the string literal)
     # This catches cases where Unicode escapes like \uFF0E are used
-    if '..' in normalized_path:
+    if ".." in normalized_path:
         # Check if original path had any non-ASCII when encoded
         try:
-            path_str.encode('ascii')
+            path_str.encode("ascii")
             # Path is pure ASCII - allow it (will be checked by resolution logic)
         except UnicodeEncodeError:
             # Path had non-ASCII characters that normalized to contain '..'
@@ -234,28 +240,31 @@ def validate_install_path(user_path: Union[str, Path], base_dir: Path) -> Path:
 
     # Additional check: Reject paths with suspicious patterns
     # Reject multiple dots in sequence (like ...., which could be obfuscation)
-    if '....' in path_str or '...' in path_str:
+    if "...." in path_str or "..." in path_str:
         raise SecurityError("Suspicious path pattern detected")
 
     # Reject double slashes which might be path obfuscation
-    if '//' in path_str:
+    if "//" in path_str:
         raise SecurityError("Double slashes in path not allowed")
 
     # Check for null bytes
-    if '\x00' in path_str:
+    if "\x00" in path_str:
         raise ValueError("Path contains null bytes")
 
     # Reject Windows absolute paths on Unix
     import os
-    if os.name != 'nt' and ':' in path_str and len(path_str) > 1 and path_str[1] == ':':
-        raise SecurityError("Invalid path: Windows-style absolute paths not allowed on Unix systems")
+
+    if os.name != "nt" and ":" in path_str and len(path_str) > 1 and path_str[1] == ":":
+        raise SecurityError(
+            "Invalid path: Windows-style absolute paths not allowed on Unix systems"
+        )
 
     # Reject Windows UNC paths
-    if path_str.startswith('\\\\') or path_str.startswith('//'):
+    if path_str.startswith("\\\\") or path_str.startswith("//"):
         raise SecurityError("Invalid path: UNC paths not allowed")
 
     # Check for backslashes on Unix (potential Windows path injection)
-    if os.name != 'nt' and '\\' in path_str:
+    if os.name != "nt" and "\\" in path_str:
         raise SecurityError("Invalid path: Backslashes not allowed on Unix systems")
 
     # Normalize base_dir to absolute path
@@ -274,7 +283,9 @@ def validate_install_path(user_path: Union[str, Path], base_dir: Path) -> Path:
     # Check if resolved path is within base_dir
     try:
         if not candidate_path.is_relative_to(base_dir):
-            raise SecurityError(f"Path traversal detected: {path_str} resolves outside base directory")
+            raise SecurityError(
+                f"Path traversal detected: {path_str} resolves outside base directory"
+            )
     except ValueError:
         # is_relative_to raises ValueError if paths are on different drives
         raise SecurityError(f"Path traversal detected: {path_str} resolves outside base directory")
@@ -316,7 +327,7 @@ def validate_download_url(url: str) -> str:
         raise ValueError(f"Malformed URL: {e}")
 
     # Check scheme is HTTPS
-    if parsed.scheme != 'https':
+    if parsed.scheme != "https":
         raise ValueError(f"URL must use HTTPS, not {parsed.scheme}")
 
     # Check for credentials in URL
@@ -348,11 +359,11 @@ def validate_download_url(url: str) -> str:
 
     # Check for localhost
     localhost_variants = [
-        'localhost',
-        '127.0.0.1',
-        '0.0.0.0',
-        '::1',
-        '[::1]',
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "::1",
+        "[::1]",
     ]
 
     if hostname in localhost_variants:
@@ -366,29 +377,31 @@ def validate_download_url(url: str) -> str:
             break
 
     if not domain_allowed:
-        raise SecurityError(f"Domain '{hostname}' not in whitelist. Allowed domains: {', '.join(ALLOWED_DOMAINS)}")
+        raise SecurityError(
+            f"Domain '{hostname}' not in whitelist. Allowed domains: {', '.join(ALLOWED_DOMAINS)}"
+        )
 
     # Check URL path for suspicious patterns
     if parsed.path:
         # Reject paths with @ symbol (could be confusing/injection attempt)
-        if '@' in parsed.path:
+        if "@" in parsed.path:
             raise SecurityError("@ symbol in URL path not allowed (potential injection)")
 
         # Reject paths with .. (path traversal on remote server)
-        if '..' in parsed.path:
+        if ".." in parsed.path:
             raise SecurityError("Path traversal (..) in URL not allowed")
 
     # Strip fragment (URL anchor)
     if parsed.fragment:
         # Reconstruct URL without fragment
-        url = url.split('#')[0]
+        url = url.split("#")[0]
 
     # Normalize uppercase domains
     if hostname != hostname.lower():
         url = url.replace(parsed.netloc, parsed.netloc.lower())
 
     # Remove explicit :443 port from URL for normalization
-    if ':443' in url:
-        url = url.replace(':443', '')
+    if ":443" in url:
+        url = url.replace(":443", "")
 
     return url
