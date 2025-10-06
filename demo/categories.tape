@@ -20,7 +20,7 @@ Enter
 Sleep 1s
 
 # Launch the TUI
-Type "crm browse"
+Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
 Enter
 Sleep 2s
 

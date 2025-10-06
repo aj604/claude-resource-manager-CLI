@@ -39,11 +39,11 @@ def cli(ctx, version, verbose, quiet, catalog_path):
 
     \b
     Examples:
-      claude-resources browse              # Launch interactive TUI
-      claude-resources search "architect"  # Search resources
-      claude-resources install architect   # Install resource
-      claude-resources deps architect      # Show dependencies
-      claude-resources sync                # Update catalog
+      crm browse              # Launch interactive TUI
+      crm search "architect"  # Search resources
+      crm install architect   # Install resource
+      crm deps architect      # Show dependencies
+      crm sync                # Update catalog
     """
     # Store context for subcommands
     ctx.ensure_object(dict)

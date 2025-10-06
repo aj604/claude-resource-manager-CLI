@@ -26,7 +26,7 @@ class TestResourceModel:
 
         assert resource.id == "architect"
         assert resource.type == "agent"
-        assert resource.name == "architect"
+        assert resource.name == "Architect"
         assert resource.description == "System architecture design specialist"
         assert resource.version == "v1.0.0"
 

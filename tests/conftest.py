@@ -20,7 +20,7 @@ def sample_resource_data() -> Dict[str, Any]:
     return {
         "id": "architect",
         "type": "agent",
-        "name": "architect",
+        "name": "Architect",
         "description": "System architecture design specialist",
         "summary": "Designs scalable system architectures",
         "version": "v1.0.0",
@@ -35,8 +35,15 @@ def sample_resource_data() -> Dict[str, Any]:
         "metadata": {
             "tools": ["Read", "Write", "Edit"],
             "model": "opus",
+            "tags": ["architecture", "design", "system"],
         },
     }
+
+
+@pytest.fixture
+def sample_resource(sample_resource_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Alias for sample_resource_data for backward compatibility."""
+    return sample_resource_data
 
 
 @pytest.fixture
@@ -352,6 +359,34 @@ def sample_resources_list():
             "type": "agent",
             "name": "Security Reviewer",
             "description": "Security audit specialist",
+            "version": "v1.0.0",
+        },
+        {
+            "id": "test-master",
+            "type": "agent",
+            "name": "Test Master",
+            "description": "Testing and quality assurance specialist",
+            "version": "v1.0.0",
+        },
+        {
+            "id": "code-reviewer",
+            "type": "agent",
+            "name": "Code Reviewer",
+            "description": "Code review and best practices specialist",
+            "version": "v1.0.0",
+        },
+        {
+            "id": "doc-writer",
+            "type": "agent",
+            "name": "Documentation Writer",
+            "description": "Technical documentation specialist",
+            "version": "v1.0.0",
+        },
+        {
+            "id": "slash-commit",
+            "type": "command",
+            "name": "/commit",
+            "description": "Create a git commit with AI-generated message",
             "version": "v1.0.0",
         },
     ]
