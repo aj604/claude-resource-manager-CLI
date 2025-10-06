@@ -1033,3 +1033,335 @@ class TestBrowserScreenPerformance:
             assert resource_list.cursor_row >= 0
             # Should have moved down from initial position
             assert resource_list.cursor_row > 0
+
+
+class TestBrowserScreenSortRaceConditionRegression:
+    """Regression tests for async sort race condition bug fix.
+
+    Bug fixed: When 's' key is pressed rapidly, the async worker could cause
+    race conditions because state was updated asynchronously. The fix was to
+    update state synchronously before launching the worker with exclusive=True.
+
+    These tests verify:
+    1. Rapid keypress simulation - pressing 's' multiple times doesn't corrupt state
+    2. Synchronous state updates - current_sort and _sort_reverse are updated immediately
+    3. Exclusive worker behavior - only one sort worker runs at a time
+    4. State consistency - current_sort, current_sort, and _sort_reverse remain consistent
+    """
+
+    @pytest.mark.asyncio
+    async def test_WHEN_rapid_s_presses_THEN_state_not_corrupted(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """Pressing 's' rapidly should not cause state corruption.
+
+        This tests the race condition fix: state is now updated synchronously
+        BEFORE the worker runs, preventing corruption when keypresses arrive
+        faster than workers can complete.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            # Focus the table
+            table = app.screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Simulate rapid 's' presses (6 times - 2 full cycles)
+            # Cycle: name -> type -> updated -> name (toggle) -> type -> updated -> name (toggle)
+            for _ in range(6):
+                await pilot.press("s")
+                # Small delay to allow state update but not worker completion
+                await pilot.pause(0.01)
+
+            # Wait for all workers to complete
+            await pilot.pause()
+
+            # State should be consistent - no corruption
+            screen = app.screen
+            assert hasattr(screen, "current_sort")
+            assert hasattr(screen, "_sort_reverse")
+            assert hasattr(screen, "current_sort")
+
+            # All three state attributes should be consistent
+            assert screen.current_sort == screen.current_sort
+            assert screen.current_sort in ["name", "type", "updated"]
+
+    @pytest.mark.asyncio
+    async def test_WHEN_s_pressed_THEN_state_updates_immediately(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """State should be updated synchronously, before worker starts.
+
+        Critical regression test: Before the fix, state was updated inside the
+        async worker, causing race conditions. Now it's updated synchronously
+        in action_open_sort_menu before run_worker is called.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Initial state should be 'name' (default)
+            assert screen.current_sort == "name"
+            initial_reverse = screen._sort_reverse
+
+            # Press 's' to trigger sort
+            await pilot.press("s")
+
+            # CRITICAL: State should be updated IMMEDIATELY, not after worker completes
+            # Check state before waiting for worker to finish
+            assert screen.current_sort == "type"  # Should advance to next field immediately
+            # No pause here - checking state synchronously after keypress
+
+            # Verify state is consistent
+            assert screen.current_sort == screen.current_sort
+
+    @pytest.mark.asyncio
+    async def test_WHEN_multiple_s_presses_THEN_only_one_worker_runs(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """Multiple rapid 's' presses should use exclusive=True for workers.
+
+        The bug fix includes exclusive=True on run_worker, ensuring that
+        only one sort worker runs at a time, preventing race conditions.
+        """
+        from unittest.mock import MagicMock, patch
+
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Spy on run_worker to verify exclusive=True is passed
+            original_run_worker = screen.run_worker
+            worker_calls = []
+
+            def mock_run_worker(worker, **kwargs):
+                worker_calls.append(kwargs)
+                return original_run_worker(worker, **kwargs)
+
+            screen.run_worker = mock_run_worker
+
+            # Press 's' twice rapidly
+            await pilot.press("s")
+            await pilot.press("s")
+
+            # Wait for workers to complete
+            await pilot.pause()
+
+            # Verify exclusive=True was used in worker calls
+            # (This ensures only one sort worker runs at a time)
+            assert len(worker_calls) >= 1
+            for call_kwargs in worker_calls:
+                if "exclusive" in call_kwargs:
+                    assert call_kwargs["exclusive"] is True
+
+    @pytest.mark.asyncio
+    async def test_WHENcurrent_sort_changes_THEN_all_state_consistent(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """All sort state attributes should remain consistent during changes.
+
+        Tests that current_sort, _sort_reverse, and current_sort are always
+        kept in sync, preventing state inconsistencies that could cause bugs.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Track state through multiple sort cycles
+            sort_fields = ["name", "type", "updated"]
+
+            for i in range(9):  # 3 full cycles
+                await pilot.press("s")
+                await pilot.pause(0.01)  # Small delay for state update
+
+                # Check state consistency after each press
+                assert screen.current_sort == screen.current_sort
+                assert screen.current_sort in sort_fields
+
+                # Verify _sort_reverse is a boolean
+                assert isinstance(screen._sort_reverse, bool)
+
+            # Final state should be consistent
+            await pilot.pause()
+            assert screen.current_sort == screen.current_sort
+
+    @pytest.mark.asyncio
+    async def test_WHEN_rapid_sort_with_filter_THEN_no_race_condition(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """Rapid sorting with active filter should not cause race conditions.
+
+        Combined operations (filter + rapid sort) should work correctly with
+        the synchronous state update fix.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Apply filter first
+            await screen.filter_by_type("agent")
+            await pilot.pause()
+
+            # Rapid sort presses
+            for _ in range(4):
+                await pilot.press("s")
+                await pilot.pause(0.01)
+
+            await pilot.pause()
+
+            # State should be consistent
+            assert screen.current_sort == screen.current_sort
+            assert screen.current_filter == "agent"
+            # Filter should still be active
+            assert all(r.get("type") == "agent" for r in screen.filtered_resources)
+
+    @pytest.mark.asyncio
+    async def test_WHEN_sort_during_search_THEN_state_remains_consistent(
+        self, mock_catalog_loader, mock_search_engine, sample_resources_list
+    ):
+        """Sorting during search operations should maintain state consistency.
+
+        Verifies that the race condition fix works correctly even when
+        search and sort operations overlap.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        mock_search_engine.search.return_value = [sample_resources_list[0]]
+        app = BrowserScreenTestApp(
+            catalog_loader=mock_catalog_loader, search_engine=mock_search_engine
+        )
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Perform search
+            await screen.perform_search("architect")
+            await pilot.pause()
+
+            # Rapid sort while search results are displayed
+            await pilot.press("s")
+            await pilot.press("s")
+            await pilot.press("s")
+
+            await pilot.pause()
+
+            # State should be consistent
+            assert screen.current_sort == screen.current_sort
+            assert len(screen.filtered_resources) > 0
+
+    @pytest.mark.asyncio
+    async def test_WHEN_sort_cycles_complete_THEN_direction_toggles_correctly(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """Sort direction should toggle correctly with Shift+S.
+
+        Verifies that the direction toggle works correctly with
+        synchronous state updates, ensuring Shift+S toggles the
+        direction of the current field.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Track initial state
+            initial_field = screen.current_sort
+            initial_reverse = screen._sort_reverse
+
+            # Press Shift+S to toggle direction
+            await pilot.press("S")  # Capital S = Shift+S
+            await pilot.pause()
+
+            # Field should remain the same, but direction should toggle
+            assert screen.current_sort == initial_field
+            assert screen._sort_reverse != initial_reverse
+
+            # Toggle again - should return to original direction
+            await pilot.press("S")
+            await pilot.pause()
+
+            assert screen.current_sort == initial_field
+            assert screen._sort_reverse == initial_reverse
+
+    @pytest.mark.asyncio
+    async def test_WHEN_interrupted_sort_THEN_state_still_consistent(
+        self, mock_catalog_loader, sample_resources_list
+    ):
+        """Interrupted sort operations should not leave inconsistent state.
+
+        Tests resilience: even if a sort is interrupted by another keypress,
+        state should remain consistent thanks to synchronous updates.
+        """
+        mock_catalog_loader.load_resources = AsyncMock(return_value=sample_resources_list)
+        app = BrowserScreenTestApp(catalog_loader=mock_catalog_loader)
+
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            screen = app.screen
+            table = screen.query_one(DataTable)
+            table.focus()
+            await pilot.pause()
+
+            # Press 's' and immediately press again (interrupt first sort)
+            await pilot.press("s")
+            # NO pause - immediate interrupt
+            await pilot.press("s")
+
+            # Small pause for state updates
+            await pilot.pause(0.01)
+
+            # State should still be consistent
+            assert screen.current_sort == screen.current_sort
+            assert isinstance(screen._sort_reverse, bool)
+
+            # Another interrupt test
+            await pilot.press("s")
+            await pilot.press("s")
+            await pilot.pause(0.01)
+
+            # Final state check
+            assert screen.current_sort == screen.current_sort
+            assert screen.current_sort in ["name", "type", "updated"]

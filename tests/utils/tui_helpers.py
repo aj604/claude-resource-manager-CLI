@@ -49,7 +49,7 @@ class TUITestHelper:
         # Current implementation: Cycling with 's' key
         # Cycle to 'name' sort (from any current state)
         browser = pilot.app.screen
-        current_sort = getattr(browser, "_sort_field", None)
+        current_sort = getattr(browser, "current_sort", None)
 
         # Cycle through until we reach 'name'
         max_cycles = 5  # Safety limit
@@ -57,7 +57,7 @@ class TUITestHelper:
         while current_sort != "name" and cycles < max_cycles:
             await pilot.press("s")
             await pilot.pause()
-            current_sort = getattr(browser, "_sort_field", None)
+            current_sort = getattr(browser, "current_sort", None)
             cycles += 1
 
     @staticmethod
@@ -68,14 +68,14 @@ class TUITestHelper:
             pilot: Textual test pilot for driving the app
         """
         browser = pilot.app.screen
-        current_sort = getattr(browser, "_sort_field", None)
+        current_sort = getattr(browser, "current_sort", None)
 
         max_cycles = 5
         cycles = 0
         while current_sort != "type" and cycles < max_cycles:
             await pilot.press("s")
             await pilot.pause()
-            current_sort = getattr(browser, "_sort_field", None)
+            current_sort = getattr(browser, "current_sort", None)
             cycles += 1
 
     @staticmethod
@@ -86,14 +86,14 @@ class TUITestHelper:
             pilot: Textual test pilot for driving the app
         """
         browser = pilot.app.screen
-        current_sort = getattr(browser, "_sort_field", None)
+        current_sort = getattr(browser, "current_sort", None)
 
         max_cycles = 5
         cycles = 0
         while current_sort != "updated" and cycles < max_cycles:
             await pilot.press("s")
             await pilot.pause()
-            current_sort = getattr(browser, "_sort_field", None)
+            current_sort = getattr(browser, "current_sort", None)
             cycles += 1
 
     @staticmethod
@@ -116,14 +116,11 @@ class TUITestHelper:
             pilot: Textual test pilot
 
         Note:
-            Current implementation: Complete TWO full cycles to toggle direction.
-            - First cycle (3 presses): Returns to start field, same direction
-            - Second cycle (3 more presses): Returns to start field, toggles direction
+            Current implementation: Use Shift+S to toggle direction of current field.
         """
-        # Press 's' 6 times to complete two full cycles, which toggles direction
-        for _ in range(6):
-            await pilot.press("s")
-            await pilot.pause()
+        # Press Shift+S to toggle direction of current sort field
+        await pilot.press("S")  # Capital S = Shift+S
+        await pilot.pause()
 
     # ============================================================================
     # SORT ASSERTION METHODS (Behavior-Focused)
@@ -219,7 +216,7 @@ class TUITestHelper:
             AssertionError: If sort indicator doesn't match
         """
         browser = app.screen
-        current_sort = getattr(browser, "_sort_field", None)
+        current_sort = getattr(browser, "current_sort", None)
         assert current_sort == expected_sort, (
             f"Sort indicator mismatch.\n" f"Expected: {expected_sort}\n" f"Got: {current_sort}"
         )
