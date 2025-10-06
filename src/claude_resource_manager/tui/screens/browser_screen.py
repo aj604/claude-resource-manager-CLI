@@ -373,10 +373,9 @@ class BrowserScreen(Screen):
     async def action_clear_search(self) -> None:
         """Clear the search input and return focus to table.
 
-        Triggered by the Escape key. If search input has focus:
-        - Clears the search text
-        - Returns focus to the resource table
-        - Resets filtered resources to show all
+        Triggered by the Escape key. Two-stage behavior:
+        1. If search has text: clear it and keep focus
+        2. If search is empty: return focus to table
         """
         search_input = self.query_one("#search-input", Input)
 
@@ -384,13 +383,15 @@ class BrowserScreen(Screen):
         if not search_input.has_focus:
             return
 
-        # Clear search and return to table in one action
-        search_input.value = ""
-        await self.perform_search("")
-
-        # Return focus to table
-        table = self.query_one("#resource-table", DataTable)
-        table.focus()
+        # Two-stage escape behavior
+        if search_input.value:
+            # First escape: clear search text but keep focus
+            search_input.value = ""
+            await self.perform_search("")
+        else:
+            # Second escape: return focus to table
+            table = self.query_one("#resource-table", DataTable)
+            table.focus()
 
     async def action_toggle_select(self) -> None:
         """Toggle multi-select for the current resource.

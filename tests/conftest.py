@@ -391,27 +391,6 @@ def sample_resources_list():
         },
     ]
 
-
-@pytest.fixture
-def sample_resource():
-    """Single sample resource with full metadata for testing."""
-    return {
-        "id": "architect",
-        "type": "agent",
-        "name": "Architect",
-        "description": "System architecture design specialist",
-        "version": "v1.0.0",
-        "metadata": {
-            "tools": ["Read", "Write", "Edit"],
-            "model": "opus",
-        },
-        "dependencies": {
-            "required": ["security-reviewer"],
-            "recommended": ["test-generator"],
-        },
-    }
-
-
 @pytest.fixture
 def dependency_tree_data():
     """Sample dependency tree data."""
