@@ -145,12 +145,19 @@ jobs:
           echo "✅ VHS tarball downloaded successfully"
 
           # Extract and install
-          if ! tar -xzf vhs.tar.gz vhs; then
+          if ! tar -xzf vhs.tar.gz; then
             echo "❌ Failed to extract VHS tarball"
             exit 1
           fi
 
-          sudo mv vhs /usr/local/bin/
+          echo "✅ VHS tarball extracted successfully"
+
+          # Move binary from versioned directory
+          if ! sudo mv vhs_${VHS_VERSION_NUM}_Linux_x86_64/vhs /usr/local/bin/; then
+            echo "❌ Failed to move VHS binary to /usr/local/bin/"
+            exit 1
+          fi
+
           sudo chmod +x /usr/local/bin/vhs
 
           # Verify installation
