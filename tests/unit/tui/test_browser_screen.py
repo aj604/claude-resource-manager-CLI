@@ -24,6 +24,9 @@ from textual.widgets import Button, DataTable, Input
 # Import the BrowserScreen
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class BrowserScreenTestApp(App):
     """Test app for BrowserScreen testing."""
@@ -149,9 +152,9 @@ class TestBrowserScreenResourceList:
 
             # Check formatting (checkbox is column 0)
             # First resource alphabetically is "/commit" (command)
-            assert first_row[0] == "[ ]"  # Checkbox (unselected)
+            assert first_row[0] == "❌"  # Checkbox (unselected - now using emoji)
             assert first_row[1] == "/commit"  # Name
-            assert first_row[2] == "command"  # Type
+            assert first_row[2] == "⚡ Command"  # Type (with emoji)
             assert "commit" in str(first_row[3]).lower()  # Description
 
     @pytest.mark.asyncio
@@ -626,12 +629,12 @@ class TestBrowserScreenCategoryFiltering:
             buttons = filter_container.query(Button)
 
             button_labels = [str(btn.label) for btn in buttons]
-            assert "All" in button_labels
-            assert "Agent" in button_labels
-            assert "Command" in button_labels
-            assert "Hook" in button_labels
-            assert "Template" in button_labels
-            assert "MCP" in button_labels
+            assert "📦 All" in button_labels
+            assert "🤖 Agent" in button_labels
+            assert "⚡ Command" in button_labels
+            assert "🪝 Hook" in button_labels
+            assert "📄 Template" in button_labels
+            assert "🔌 MCP" in button_labels
 
     @pytest.mark.asyncio
     async def test_active_filter_button_highlighted(self, mock_catalog_loader):

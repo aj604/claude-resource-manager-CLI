@@ -32,6 +32,9 @@ from textual.widgets import DataTable, Static
 
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class VisualPolishTestApp(App):
     """Test app for visual polish testing."""
@@ -124,6 +127,7 @@ class TestCheckboxColumn:
             assert checkbox_cell in [
                 "[ ]",
                 "☐",
+                "❌",
                 "",
             ], f"Unselected row should show empty checkbox, got: {checkbox_cell}"
 
@@ -160,6 +164,7 @@ class TestCheckboxColumn:
                 "[x]",
                 "☑",
                 "✓",
+                "✅",
             ], f"Selected row should show checked checkbox, got: {checkbox_cell}"
 
     @pytest.mark.asyncio
@@ -187,7 +192,7 @@ class TestCheckboxColumn:
             initial_checkbox = str(first_row_initial[0])
 
             # Should start unchecked
-            assert initial_checkbox in ["[ ]", "☐", ""], "Initial state should be unchecked"
+            assert initial_checkbox in ["[ ]", "☐", "❌", ""], "Initial state should be unchecked"
 
             # Toggle selection with space
             await pilot.press("space")
@@ -200,6 +205,7 @@ class TestCheckboxColumn:
                 "[x]",
                 "☑",
                 "✓",
+                "✅",
             ], "After space, should show checked checkbox"
 
             # Toggle again
@@ -212,6 +218,7 @@ class TestCheckboxColumn:
             assert deselected_checkbox in [
                 "[ ]",
                 "☐",
+                "❌",
                 "",
             ], "After second space, should show unchecked checkbox"
 
@@ -250,6 +257,7 @@ class TestCheckboxColumn:
                     "[x]",
                     "☑",
                     "✓",
+                    "✅",
                 ], f"Row {row_index} should show checked checkbox, got: {checkbox_cell}"
 
     @pytest.mark.asyncio
@@ -306,8 +314,8 @@ class TestCheckboxColumn:
             row_unselected = table.get_row_at(0)
             unchecked = str(row_unselected[0])
 
-            # Should be [ ] or ☐
-            assert unchecked in ["[ ]", "☐"], f"Unchecked should be [ ] or ☐, got: {unchecked}"
+            # Should be [ ] or ☐ or ❌
+            assert unchecked in ["[ ]", "☐", "❌"], f"Unchecked should be [ ] or ☐, got: {unchecked}"
 
             # Select and get checked checkbox
             await pilot.press("space")
@@ -316,8 +324,8 @@ class TestCheckboxColumn:
             row_selected = table.get_row_at(0)
             checked = str(row_selected[0])
 
-            # Should be [x] or ☑
-            assert checked in ["[x]", "☑"], f"Checked should be [x] or ☑, got: {checked}"
+            # Should be [x] or ☑ or ✅
+            assert checked in ["[x]", "☑", "✅"], f"Checked should be [x] or ☑, got: {checked}"
 
 
 # ============================================================================
@@ -550,6 +558,7 @@ class TestVisualFeedback:
                 "[x]",
                 "☑",
                 "✓",
+                "✅",
             ], "Checkbox should update immediately on selection"
 
             # Selection set should also update
@@ -581,7 +590,7 @@ class TestVisualFeedback:
 
             # Verify selected
             row_selected = table.get_row_at(0)
-            assert "[x]" in str(row_selected[0]) or "☑" in str(row_selected[0])
+            assert "[x]" in str(row_selected[0]) or "☑" in str(row_selected[0]) or "✅" in str(row_selected[0])
 
             # Deselect
             await pilot.press("space")
@@ -592,6 +601,7 @@ class TestVisualFeedback:
             assert checkbox_cell in [
                 "[ ]",
                 "☐",
+                "❌",
                 "",
             ], "Checkbox should clear immediately on deselection"
 
@@ -708,7 +718,7 @@ class TestVisualFeedback:
             row = table.get_row_at(0)
             checkbox = str(row[0])
 
-            assert checkbox in ["[x]", "☑"], "Row should show selection checkbox"
+            assert checkbox in ["[x]", "☑", "✅"], "Row should show selection checkbox"
             assert table.cursor_row == 0, "Focus cursor should still be on row 0"
             # Both states coexist - focus cursor + selection checkbox
 
@@ -800,6 +810,7 @@ class TestAnimationAndTiming:
                 assert checkbox in [
                     "[x]",
                     "☑",
+                    "✅",
                 ], f"Row {row_index} checkbox should be checked (no flicker)"
 
     @pytest.mark.asyncio
@@ -886,7 +897,7 @@ class TestVisualPolishIntegration:
 
             # Verify checkbox
             row = table.get_row_at(0)
-            assert "[x]" in str(row[0]) or "☑" in str(row[0])
+            assert "[x]" in str(row[0]) or "☑" in str(row[0]) or "✅" in str(row[0])
 
             # Verify count
             selection_widget = screen.query_one("#selection-count", Static)
@@ -947,6 +958,7 @@ class TestVisualPolishIntegration:
                 assert checkbox in [
                     "[ ]",
                     "☐",
+                    "❌",
                     "",
                 ], f"Row {row_index} checkbox should be empty after clear"
 

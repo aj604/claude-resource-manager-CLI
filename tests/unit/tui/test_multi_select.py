@@ -23,6 +23,9 @@ from textual.widgets import DataTable
 
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class MultiSelectTestApp(App):
     """Test app for multi-select testing."""
@@ -316,7 +319,7 @@ class TestUIUpdates:
             # Check if checkbox column exists and shows [x]
             first_row = table.get_row_at(0)
             # Checkbox should be first column
-            assert "[x]" in str(first_row[0]) or "✓" in str(first_row[0])
+            assert "[x]" in str(first_row[0]) or "✓" in str(first_row[0]) or "✅" in str(first_row[0])
 
     @pytest.mark.asyncio
     async def test_WHEN_not_selected_THEN_shows_empty_checkbox(
@@ -335,7 +338,7 @@ class TestUIUpdates:
             # Check first row (not selected)
             first_row = table.get_row_at(0)
             # Should show empty checkbox
-            assert "[ ]" in str(first_row[0]) or "☐" in str(first_row[0])
+            assert "[ ]" in str(first_row[0]) or "☐" in str(first_row[0]) or "❌" in str(first_row[0])
 
     @pytest.mark.asyncio
     async def test_WHEN_selections_change_THEN_counter_updates(

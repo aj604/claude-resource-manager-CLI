@@ -192,14 +192,16 @@ class TestBatchWorkflow:
             },
         ]
 
+        # Create response mock (use Mock, not AsyncMock for response)
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.content = b"# Test"
+        mock_response.raise_for_status = Mock()
+
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(
-            return_value=AsyncMock(
-                status_code=200,
-                content=b"# Test",
-                raise_for_status=Mock(),
-            )
-        )
+        mock_client.get = AsyncMock(return_value=mock_response)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
 
         with patch("httpx.AsyncClient", return_value=mock_client):
             results = await installer.batch_install(resources)
@@ -558,20 +560,32 @@ class TestBatchPerformance:
         # Mock client with 100ms delay per download
         async def delayed_get(url, **kwargs):
             await asyncio.sleep(0.1)  # 100ms delay
-            return AsyncMock(
-                status_code=200,
-                content=b"# Test",
-                raise_for_status=Mock(),
-            )
+            # Return proper Mock response, not AsyncMock
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.content = b"# Test"
+            mock_response.raise_for_status = Mock()
+            return mock_response
 
         mock_client = AsyncMock()
         mock_client.get = delayed_get
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
 
         # Parallel install
         start = time.time()
         with patch("httpx.AsyncClient", return_value=mock_client):
             await installer.batch_install(resources, parallel=True)
         parallel_duration = time.time() - start
+
+        # Clean up installed files for serial test
+        import shutil
+
+        for resource_type in ["agents", "commands", "hooks", "templates", "mcps"]:
+            type_dir = temp_install_dir / resource_type
+            if type_dir.exists():
+                shutil.rmtree(type_dir)
+                type_dir.mkdir()
 
         # Serial install
         start = time.time()

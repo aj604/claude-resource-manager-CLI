@@ -73,9 +73,21 @@ class SearchEngine:
         # Build searchable text index
         self._searchable_text: dict[str, str] = {}
 
-        # For caching
+        # For caching - we need a wrapper to handle unhashable filters dict
         if self.use_cache:
-            self.search = lru_cache(maxsize=100)(self._search_impl)
+            # Create a cached version that converts filters to hashable type
+            @lru_cache(maxsize=100)
+            def _cached_search(query: str, limit: int, filters_tuple: Optional[tuple] = None):
+                # Convert filters tuple back to dict
+                filters = dict(filters_tuple) if filters_tuple else None
+                return self._search_impl(query, limit, filters)
+
+            def search_wrapper(query: str, limit: int = 50, filters: Optional[dict[str, Any]] = None):
+                # Convert filters dict to tuple for caching
+                filters_tuple = tuple(sorted(filters.items())) if filters else None
+                return _cached_search(query, limit, filters_tuple)
+
+            self.search = search_wrapper
         else:
             self.search = self._search_impl
 
