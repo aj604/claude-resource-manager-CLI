@@ -158,10 +158,16 @@ class Catalog(BaseModel):
     Attributes:
         total: Total number of resources across all types
         types: Dictionary mapping resource types to their indices
+        resources: Optional list of resource dictionaries (for simple/demo catalogs)
+        version: Optional catalog version string
     """
 
     total: int = Field(..., description="Total number of resources")
     types: dict[str, dict[str, Any]] = Field(..., description="Resource types with counts")
+    resources: Optional[list[dict[str, Any]]] = Field(
+        None, description="Optional embedded resource list (for demo catalogs)"
+    )
+    version: Optional[str] = Field(None, description="Catalog version")
 
     @field_validator("types")
     @classmethod

@@ -5,11 +5,12 @@
 
 # Configuration
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
+Set FontSize 14
+Set Width 1000
+Set Height 600
 Set TypingSpeed 50ms
 Set Theme "Dracula"
+Set Framerate 12
 
 # Output
 Output demo/output/quick-start.gif
@@ -24,16 +25,16 @@ Enter
 Sleep 500ms
 
 # Launch the TUI
-Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
+Type ".venv/bin/crm browse"
 Enter
-Sleep 3s
+Sleep 4s
 
 # Navigate with arrow keys
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
-Type "j"  # Move down again
+Down  # Move down again
 Sleep 500ms
-Type "k"  # Move up
+Up  # Move up
 Sleep 500ms
 
 # View resource details
@@ -45,47 +46,39 @@ Sleep 1s
 # Search for a resource
 Type "/"  # Open search
 Sleep 500ms
-Type "model"  # Search term
+Type "security"  # Search term
 Sleep 1s
 Enter  # Apply search
 Sleep 2s
-
-# Clear search
-Type "/"  # Open search again
+Escape  # Clear search text (first escape)
 Sleep 500ms
-Ctrl+U  # Clear search field
-Escape  # Close search
-Sleep 1s
-
-# Navigate categories
-Tab  # Cycle category
-Sleep 1s
-Tab  # Next category
-Sleep 1s
-Tab  # Next category
+Escape  # Return focus to table (second escape)
 Sleep 1s
 
 # Select a resource
-Type "j"  # Move to desired item
+Down  # Move to desired item
 Sleep 500ms
 Space  # Select item
 Sleep 1s
 
 # Multi-select another item
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
 Space  # Select another item
 Sleep 1s
 
-# Install selected resources
-Type "i"  # Install command
-Sleep 2s
+# Show selection status
+Sleep 1.5s
 
-# Show success and exit
+# Install selected resources
+Type "i"  # Trigger installation
+Sleep 3s
+
+# Exit to show completion
 Type "q"  # Quit
 Sleep 1s
 
 # Summary
-Type "# Demo complete! Selected resources have been installed."
+Type "# Demo complete! Resources installed successfully."
 Enter
 Sleep 2s

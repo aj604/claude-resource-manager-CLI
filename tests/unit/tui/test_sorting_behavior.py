@@ -29,6 +29,9 @@ import pytest
 from tests.unit.tui.test_advanced_ui import AdvancedUITestApp
 from tests.utils.tui_helpers import TUITestHelper
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class TestSortingBehaviorFocused:
     """Behavior-focused sorting tests that survive UX changes.

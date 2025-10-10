@@ -26,6 +26,9 @@ from textual.widgets import Input, ListView
 
 from claude_resource_manager.tui.screens.search_screen import SearchScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class TestSearchScreenInitialization:
     """Test search screen initialization."""

@@ -1,81 +1,78 @@
-# VHS tape file - Categories Demo (20 seconds)
-# Demonstrates category filtering and navigation
-# Duration: ~20 seconds
-# Shows: Tab cycling, category filtering, navigation within categories
+# VHS tape file - Category Filtering Demo (18 seconds)
+# Demonstrates category filtering with keyboard shortcuts
+# Duration: ~18 seconds
+# Shows: Category cycling with 'n' key, filtered resource lists
 
 # Configuration
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
+Set FontSize 14
+Set Width 1000
+Set Height 600
 Set TypingSpeed 50ms
 Set Theme "Dracula"
+Set Framerate 12
 
 # Output
 Output demo/output/categories.gif
 
 # Introduction
-Type "# Categories Demo - Filter by Resource Type"
+Type "# Category Filtering Demo - Press 'n' to cycle categories"
 Enter
 Sleep 1s
 
 # Launch the TUI
-Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
+Type ".venv/bin/crm browse"
 Enter
-Sleep 2s
+Sleep 4s
 
-# Show current category (All)
+# Show All category (default)
 Sleep 1s
 
-# Cycle through categories
-Tab  # Next category
-Sleep 1.5s
+# Cycle to Agent category
+Type "n"  # Next category → Agent
+Sleep 1.8s
 
-Tab  # Next category
-Sleep 1.5s
+# Navigate within Agent category
+Down
+Sleep 700ms
+Down
+Sleep 700ms
 
-Tab  # Next category
-Sleep 1.5s
+# Cycle to Command category
+Type "n"  # Next category → Command
+Sleep 1.8s
 
-Tab  # Next category
-Sleep 1.5s
+# Navigate within Command category
+Down
+Sleep 700ms
 
-# Navigate within a category
-Type "j"  # Move down
-Sleep 500ms
-Type "j"  # Move down
-Sleep 500ms
-Type "k"  # Move up
-Sleep 500ms
+# Cycle to Hook category
+Type "n"  # Next category → Hook
+Sleep 1.8s
 
-# View details in current category
-Enter  # Open details
-Sleep 2s
-Escape  # Close details
-Sleep 800ms
+# Cycle to Template category
+Type "n"  # Next category → Template
+Sleep 1.8s
 
-# Continue cycling categories
-Tab  # Next category
-Sleep 1.5s
+# Cycle to MCP category
+Type "n"  # Next category → MCP
+Sleep 1.8s
 
-Tab  # Next category
-Sleep 1.5s
+# Cycle back to All
+Type "n"  # Next category → All (cycles back)
+Sleep 1.8s
 
-# Return to "All" categories
-Tab  # Should cycle back to All
-Sleep 1.5s
-
-# Show all resources again
-Type "j"  # Navigate in full list
-Sleep 500ms
-Type "j"
-Sleep 500ms
+# Navigate in full list
+Down
+Sleep 700ms
+Down
+Sleep 700ms
 
 # Exit
 Type "q"  # Quit
 Sleep 500ms
 
 # Summary
-Type "# Categories help you find resources by type quickly!"
+Type "# Press 'n' to cycle categories, 'N' (Shift+n) to go backwards!"
 Enter
 Sleep 1.5s

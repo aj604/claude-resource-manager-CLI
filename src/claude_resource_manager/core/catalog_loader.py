@@ -79,8 +79,14 @@ class CatalogLoader:
             # load_yaml_safe handles size limits, timeout, and security (uses yaml.safe_load)
             data = load_yaml_safe(index_file)
 
+            # Handle catalogs with 'catalog:' root key (demo format) vs direct format
+            if "catalog" in data and isinstance(data["catalog"], dict):
+                catalog_data = data["catalog"]
+            else:
+                catalog_data = data
+
             # Validate using Pydantic model
-            catalog = Catalog(**data)
+            catalog = Catalog(**catalog_data)
 
             # Cache if enabled
             if self.use_cache:
@@ -125,10 +131,33 @@ class CatalogLoader:
     def load_all_resources(self) -> list[dict[str, Any]]:
         """Load all resources from catalog.
 
+        First tries to load from index.yaml resources list (for demo/simple catalogs).
+        Falls back to loading from type-specific directories if no resources in index.
+
         Returns:
             List of resource dictionaries
         """
         resources = []
+
+        # Try loading from index.yaml first
+        try:
+            catalog = self.load_index()
+            if catalog.resources and len(catalog.resources) > 0:
+                # Index has resources embedded - use those
+                for resource in catalog.resources:
+                    resource_dict = resource.model_dump() if hasattr(resource, 'model_dump') else dict(resource)
+                    resources.append(resource_dict)
+
+                    # Store in lookup dict for O(1) access
+                    resource_id = resource_dict.get("id")
+                    resource_type = resource_dict.get("type")
+                    if resource_id and resource_type:
+                        self.resources[(resource_id, resource_type)] = resource_dict
+
+                return resources
+        except Exception:
+            # Index doesn't exist or doesn't have resources - fall through to directory scan
+            pass
 
         # Define resource type directories (check both singular and plural)
         type_dirs = {
@@ -162,6 +191,17 @@ class CatalogLoader:
                         continue
 
         return resources
+
+    async def load_resources(self) -> list[dict[str, Any]]:
+        """Async wrapper for load_all_resources() for backward compatibility.
+
+        Returns:
+            List of resource dictionaries
+        """
+        # Run synchronous load_all_resources in executor to make it async-compatible
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.load_all_resources)
 
     def get_resource(self, resource_id: str, resource_type: str) -> Optional[dict[str, Any]]:
         """Get resource by ID - O(1) lookup.

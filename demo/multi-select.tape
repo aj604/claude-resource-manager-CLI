@@ -5,11 +5,12 @@
 
 # Configuration
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
+Set FontSize 14
+Set Width 1000
+Set Height 600
 Set TypingSpeed 50ms
 Set Theme "Dracula"
+Set Framerate 12
 
 # Output
 Output demo/output/multi-select.gif
@@ -20,63 +21,58 @@ Enter
 Sleep 1s
 
 # Launch the TUI
-Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
+Type ".venv/bin/crm browse"
 Enter
-Sleep 2s
+Sleep 4s
 
 # Select first item
 Space  # Select current item
-Sleep 800ms
+Sleep 1.2s
 
 # Navigate and select more items
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
 Space  # Select second item
-Sleep 800ms
+Sleep 1.2s
 
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
 Space  # Select third item
-Sleep 800ms
+Sleep 1.2s
 
 # Show selection count
-Sleep 1.5s
+Sleep 2s
 
 # Deselect an item
-Type "k"  # Move up
+Up  # Move up
 Sleep 500ms
 Space  # Deselect (toggle)
-Sleep 800ms
+Sleep 1.2s
 
 # Navigate to show selections are preserved
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
-Type "j"  # Move down
+Down  # Move down
 Sleep 500ms
 
 # Select one more
 Space  # Select another item
-Sleep 800ms
+Sleep 1.2s
 
-# Perform batch install
-Type "i"  # Install selected
+# Show final selection count
 Sleep 2.5s
 
-# Clear selections
-Type "c"  # Clear all selections
-Sleep 1s
-
 # Exit
-Type "q"  # Quit
+Type q  # Quit
 Sleep 500ms
 
 # Summary
-Type "# Batch operations complete! Multiple resources installed at once."
+Type "# Batch operations complete! Multi-select demonstrated with Space."
 Enter
 Sleep 1.5s
