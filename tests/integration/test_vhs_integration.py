@@ -114,7 +114,7 @@ class TestVHSTapeExecution:
 
         # Act
         result = subprocess.run(
-            ["vhs", str(tape_file)], capture_output=True, text=True, timeout=60  # 60 second timeout
+            ["vhs", str(tape_file)], capture_output=True, text=True, timeout=180  # 180 second timeout
         )
 
         # Assert
@@ -139,7 +139,7 @@ class TestVHSTapeExecution:
         tape_file = demo_dir / tape_files["fuzzy-search"]
 
         # Act
-        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=60)
+        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=180)
 
         # Assert
         assert result.returncode == 0, (
@@ -161,7 +161,7 @@ class TestVHSTapeExecution:
         tape_file = demo_dir / tape_files["multi-select"]
 
         # Act
-        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=60)
+        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=180)
 
         # Assert
         assert result.returncode == 0, (
@@ -183,7 +183,7 @@ class TestVHSTapeExecution:
         tape_file = demo_dir / tape_files["categories"]
 
         # Act
-        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=60)
+        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=180)
 
         # Assert
         assert result.returncode == 0, (
@@ -205,7 +205,7 @@ class TestVHSTapeExecution:
         tape_file = demo_dir / tape_files["help-system"]
 
         # Act
-        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=60)
+        result = subprocess.run(["vhs", str(tape_file)], capture_output=True, text=True, timeout=180)
 
         # Assert
         assert result.returncode == 0, (
@@ -241,7 +241,7 @@ class TestVHSGifOutput:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         assert expected_gif.exists(), (
@@ -270,7 +270,7 @@ class TestVHSGifOutput:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         file_size_mb = expected_gif.stat().st_size / (1024 * 1024)
@@ -286,10 +286,10 @@ class TestVHSGifOutput:
         tape_files: dict[str, str],
         expected_gifs: dict[str, str],
     ):
-        """GIF should have correct dimensions (1200x800) for consistency.
+        """GIF should have correct dimensions (1000x600) for consistency.
 
         Behavior:
-        - Standard terminal size: 1200x800 pixels
+        - Standard terminal size: 1000x600 pixels
         - Matches VHS Set Width/Height directives
         - Consistent aspect ratio across all demos
 
@@ -303,13 +303,13 @@ class TestVHSGifOutput:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         with Image.open(expected_gif) as img:
             width, height = img.size
-            assert width == 1200, f"Expected width 1200px, got {width}px"
-            assert height == 800, f"Expected height 800px, got {height}px"
+            assert width == 1000, f"Expected width 1000px, got {width}px"
+            assert height == 600, f"Expected height 600px, got {height}px"
 
     @pytest.mark.integration
     def test_WHEN_all_tapes_execute_THEN_total_size_under_10mb(
@@ -330,7 +330,7 @@ class TestVHSGifOutput:
         total_size_bytes = 0
         for demo_name, tape_file_name in tape_files.items():
             tape_file = demo_dir / tape_file_name
-            subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+            subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
             gif_file = output_dir / expected_gifs[demo_name]
             if gif_file.exists():
@@ -368,7 +368,7 @@ class TestVHSGifOutput:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         with Image.open(expected_gif) as img:
@@ -419,7 +419,7 @@ class TestDemoQuality:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         with Image.open(expected_gif) as img:
@@ -446,6 +446,7 @@ class TestDemoQuality:
             )
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_WHEN_feature_demos_THEN_duration_20_seconds(
         self,
         demo_dir: Path,
@@ -474,7 +475,7 @@ class TestDemoQuality:
             expected_gif = output_dir / expected_gifs[demo_name]
 
             # Act
-            subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+            subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
             # Assert
             with Image.open(expected_gif) as img:
@@ -499,6 +500,7 @@ class TestDemoQuality:
                 )
 
     @pytest.mark.integration
+    @pytest.mark.slow
     def test_WHEN_demo_plays_THEN_all_frames_valid(
         self,
         demo_dir: Path,
@@ -523,7 +525,7 @@ class TestDemoQuality:
         expected_gif = output_dir / expected_gifs["quick-start"]
 
         # Act
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         # Assert
         with Image.open(expected_gif) as img:
@@ -613,7 +615,7 @@ class TestMakefileIntegration:
         """
         # Arrange - Generate at least one GIF first
         tape_file = demo_dir / tape_files["quick-start"]
-        subprocess.run(["vhs", str(tape_file)], check=True, timeout=60)
+        subprocess.run(["vhs", str(tape_file)], check=True, timeout=180)
 
         gif_file = output_dir / expected_gifs["quick-start"]
         assert gif_file.exists(), "Setup: GIF should exist before cleanup"

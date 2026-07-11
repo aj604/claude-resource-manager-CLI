@@ -1,15 +1,16 @@
-# VHS tape file - Help System Demo (20 seconds)
+# VHS tape file - Help System Demo (15 seconds)
 # Demonstrates help modal and keyboard shortcuts
-# Duration: ~20 seconds
+# Duration: ~15 seconds
 # Shows: Help modal, keyboard shortcuts, using shortcuts
 
 # Configuration
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
+Set FontSize 14
+Set Width 1000
+Set Height 600
 Set TypingSpeed 50ms
 Set Theme "Dracula"
+Set Framerate 12
 
 # Output
 Output demo/output/help-system.gif
@@ -20,59 +21,47 @@ Enter
 Sleep 1s
 
 # Launch the TUI
-Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
+Type ".venv/bin/crm browse"
 Enter
-Sleep 2s
+Sleep 4s
 
 # Open help modal
 Type "?"  # Open help
-Sleep 3s
-
-# Navigate help (if scrollable)
-Down  # Scroll down in help
-Sleep 1s
-Down
-Sleep 1s
-Up  # Scroll back up
-Sleep 1s
-
-# View all shortcuts
-Sleep 2s
+Sleep 4s
 
 # Close help modal
 Escape  # Close help
-Sleep 1s
+Sleep 800ms
 
-# Demonstrate a shortcut from help
+# Demonstrate search shortcut from help
 Type "/"  # Search (as shown in help)
 Sleep 500ms
-Type "prompt"
-Sleep 800ms
+Type "agent"
+Sleep 1s
 Enter  # Apply search
 Sleep 1.5s
 
-# Use another shortcut
-Type "g"  # Go to top
-Sleep 1s
-
-Type "G"  # Go to bottom
-Sleep 1s
+# Clear search
+Escape  # Clear search
+Sleep 800ms
 
 # Show selection shortcut
 Space  # Select
-Sleep 800ms
-Type "j"
-Sleep 500ms
+Sleep 1.2s
+Down
+Sleep 700ms
 Space  # Select another
-Sleep 800ms
+Sleep 1.2s
 
-# Clear selections
-Type "c"  # Clear all
-Sleep 1s
+# Navigate with selections
+Down
+Sleep 600ms
+Up
+Sleep 600ms
 
 # Open help again briefly
 Type "?"  # Show help is always available
-Sleep 1.5s
+Sleep 2.5s
 Escape  # Close
 Sleep 500ms
 

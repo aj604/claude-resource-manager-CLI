@@ -23,6 +23,9 @@ from textual.widgets import Button, Markdown
 
 from claude_resource_manager.tui.screens.detail_screen import DetailScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class DetailScreenTestApp(App):
     """Test app for DetailScreen testing."""

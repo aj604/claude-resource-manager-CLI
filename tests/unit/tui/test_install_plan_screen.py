@@ -23,6 +23,9 @@ from unittest.mock import patch
 import pytest
 from textual.widgets import ProgressBar, Tree
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class TestInstallPlanScreenInitialization:
     """Test install plan screen initialization."""

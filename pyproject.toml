@@ -136,6 +136,7 @@ markers = [
     "e2e: marks tests as end-to-end tests",
     "benchmark: marks tests as benchmark tests",
     "property: marks tests as property-based tests (hypothesis)",
+    "serial: marks tests that must run serially (not in parallel)",
 ]
 
 [tool.coverage.run]

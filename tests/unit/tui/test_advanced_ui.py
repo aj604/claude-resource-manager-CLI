@@ -43,6 +43,9 @@ from textual.widgets import DataTable
 # Import screens
 from claude_resource_manager.tui.screens.browser_screen import BrowserScreen
 
+# Force TUI tests to run serially to avoid race conditions with Textual app state
+pytestmark = pytest.mark.xdist_group("tui")
+
 
 class AdvancedUITestApp(App):
     """Test app for advanced UI testing."""

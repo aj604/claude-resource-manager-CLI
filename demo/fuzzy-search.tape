@@ -1,15 +1,16 @@
-# VHS tape file - Fuzzy Search Demo (20 seconds)
+# VHS tape file - Fuzzy Search Demo (15 seconds)
 # Demonstrates fuzzy search capabilities with typo tolerance
-# Duration: ~20 seconds
+# Duration: ~15 seconds
 # Shows: Search with typos, fuzzy matching, result filtering
 
 # Configuration
 Set Shell "bash"
-Set FontSize 16
-Set Width 1200
-Set Height 800
-Set TypingSpeed 65ms
+Set FontSize 14
+Set Width 1000
+Set Height 600
+Set TypingSpeed 50ms
 Set Theme "Dracula"
+Set Framerate 12
 
 # Output
 Output demo/output/fuzzy-search.gif
@@ -20,53 +21,50 @@ Enter
 Sleep 1s
 
 # Launch the TUI
-Type "(source .venv/bin/activate 2>/dev/null || true) && crm browse"
+Type ".venv/bin/crm browse"
 Enter
-Sleep 2s
+Sleep 4s
 
 # Open search
 Type "/"  # Open search dialog
 Sleep 500ms
 
 # Search with typos (intentional misspellings)
-Type "comptr"  # Typo for "computer"
+Type "architet"  # Typo for "architect"
 Sleep 1s
 
 # Show fuzzy matching working
 Enter  # Apply search
 Sleep 2s
 
+# Navigate results to show matches found
+Down
+Sleep 700ms
+Down
+Sleep 700ms
+
 # Clear and try another fuzzy search
+Escape  # Clear search
+Sleep 800ms
 Type "/"  # Open search again
 Sleep 500ms
-Ctrl+U  # Clear current search
-Sleep 300ms
 
 # Another example with typos
-Type "vison"  # Typo for "vision"
+Type "secrity"  # Typo for "security"
 Sleep 1s
 Enter  # Apply search
 Sleep 2s
 
-# Show exact match attempt
-Type "/"  # Open search
-Sleep 500ms
-Ctrl+U  # Clear
-Sleep 300ms
-Type "model context"  # Multi-word search
-Sleep 1s
-Enter  # Apply search
-Sleep 2s
+# Navigate to show search results
+Down
+Sleep 700ms
 
 # Clear search and show all resources
-Type "/"  # Open search
-Sleep 500ms
-Ctrl+U  # Clear search completely
 Escape  # Close search (shows all)
 Sleep 1s
 
 # Exit
-Type "q"  # Quit
+Type q  # Quit
 Sleep 500ms
 
 # Summary

@@ -59,6 +59,37 @@ class BrowserScreen(Screen):
         current_filter: Active category filter (all, agent, command, etc.)
     """
 
+    # Resource type emoji mapping for visual hierarchy
+    TYPE_EMOJIS = {
+        "agent": "🤖",      # Robot for AI agents
+        "command": "⚡",    # Lightning for quick commands
+        "hook": "🪝",       # Hook for lifecycle hooks
+        "template": "📄",   # Document for templates
+        "mcp": "🔌",        # Plug for MCP connections
+        "all": "📦"         # Package for all resources
+    }
+
+    @classmethod
+    def format_type_with_emoji(cls, resource_type: str) -> str:
+        """Format resource type with emoji for better visual identification.
+
+        Args:
+            resource_type: The resource type (agent, command, hook, template, mcp)
+
+        Returns:
+            Formatted string with emoji and text (e.g., "🤖 Agent")
+
+        Note:
+            Always includes text label for screen reader accessibility.
+        """
+        type_lower = resource_type.lower()
+        emoji = cls.TYPE_EMOJIS.get(type_lower, "")
+        type_display = resource_type.capitalize() if type_lower != "mcp" else "MCP"
+
+        if emoji:
+            return f"{emoji} {type_display}"
+        return type_display
+
     BINDINGS = [
         Binding("up", "cursor_up", "Move Up", show=False),
         Binding("down", "cursor_down", "Move Down", show=False),
@@ -67,6 +98,8 @@ class BrowserScreen(Screen):
         Binding("escape", "clear_search", "Clear Search", show=False),
         Binding("space", "toggle_select", "Toggle Select", show=True),
         Binding("tab", "focus_next", "Next Field", show=False),
+        Binding("n", "next_category", "Next Category", show=True),
+        Binding("N", "prev_category", "Previous Category", show=True),
         Binding("s", "open_sort_menu", "Sort", show=True),
         Binding("S", "toggle_sort_direction", "Reverse Sort", show=True),
         Binding("p", "toggle_preview", "Toggle Preview", show=True),
@@ -144,14 +177,14 @@ class BrowserScreen(Screen):
         # Search input
         yield Input(placeholder="Search resources...", id="search-input")
 
-        # Filter buttons container
+        # Filter buttons container with emojis for visual hierarchy
         with Horizontal(id="filter-buttons"):
-            yield Button("All", id="filter-all", classes="filter-button active")
-            yield Button("Agent", id="filter-agent", classes="filter-button")
-            yield Button("Command", id="filter-command", classes="filter-button")
-            yield Button("Hook", id="filter-hook", classes="filter-button")
-            yield Button("Template", id="filter-template", classes="filter-button")
-            yield Button("MCP", id="filter-mcp", classes="filter-button")
+            yield Button("📦 All", id="filter-all", classes="filter-button active")
+            yield Button("🤖 Agent", id="filter-agent", classes="filter-button")
+            yield Button("⚡ Command", id="filter-command", classes="filter-button")
+            yield Button("🪝 Hook", id="filter-hook", classes="filter-button")
+            yield Button("📄 Template", id="filter-template", classes="filter-button")
+            yield Button("🔌 MCP", id="filter-mcp", classes="filter-button")
 
         # Main content area with table and preview
         with Horizontal(id="main-content"):
@@ -300,10 +333,12 @@ class BrowserScreen(Screen):
                 try:
                     # Determine checkbox state
                     resource_id = resource.get("id", resource.get("name"))
-                    checkbox = "[x]" if resource_id in self.selected_resources else "[ ]"
+                    checkbox = "✅" if resource_id in self.selected_resources else "❌"
 
                     name = resource.get("name", resource.get("id", "Unknown"))
                     res_type = resource.get("type", "unknown")
+                    # Format type with emoji for better visual hierarchy
+                    formatted_type = self.format_type_with_emoji(res_type)
                     description = resource.get("description", resource.get("summary", ""))
                     version = resource.get("version", "")
 
@@ -312,7 +347,7 @@ class BrowserScreen(Screen):
                     if score is not None:
                         description = f"{description} (Score: {score})"
 
-                    table.add_row(checkbox, name, res_type, description, version)
+                    table.add_row(checkbox, name, formatted_type, description, version)
                 except Exception:
                     # Skip malformed resources
                     continue
@@ -408,13 +443,13 @@ class BrowserScreen(Screen):
 
                 if resource_id in self.selected_resources:
                     self.selected_resources.discard(resource_id)
-                    new_checkbox = "[ ]"
+                    new_checkbox = "❌"
                 else:
                     # Check selection limit before adding
                     if not self._check_selection_limit():
                         return
                     self.selected_resources.add(resource_id)
-                    new_checkbox = "[x]"
+                    new_checkbox = "✅"
 
                 # Update checkbox cell in the table (first column, index 0)
                 table.update_cell_at((current_row, 0), new_checkbox)
@@ -450,6 +485,26 @@ class BrowserScreen(Screen):
             self.query_one(DataTable).focus()
         else:
             self.query_one(Input).focus()
+
+    async def action_next_category(self) -> None:
+        """Cycle to the next category filter.
+
+        Triggered by the 'n' key. Cycles through: All → Agent → Command → Hook → Template → MCP → All
+        """
+        categories = ["all", "agent", "command", "hook", "template", "mcp"]
+        current_index = categories.index(self.current_filter)
+        next_index = (current_index + 1) % len(categories)
+        await self.filter_by_type(categories[next_index])
+
+    async def action_prev_category(self) -> None:
+        """Cycle to the previous category filter.
+
+        Triggered by Shift+'n' key. Cycles through: All ← Agent ← Command ← Hook ← Template ← MCP ← All
+        """
+        categories = ["all", "agent", "command", "hook", "template", "mcp"]
+        current_index = categories.index(self.current_filter)
+        prev_index = (current_index - 1) % len(categories)
+        await self.filter_by_type(categories[prev_index])
 
     async def perform_search(self, query: str) -> None:
         """Perform a search and update the resource list.
@@ -775,7 +830,7 @@ class BrowserScreen(Screen):
         table = self.query_one(DataTable)
         for row_index in range(table.row_count):
             try:
-                table.update_cell_at((row_index, 0), "[ ]")
+                table.update_cell_at((row_index, 0), "❌")
             except Exception:
                 # Skip if row doesn't exist
                 pass
@@ -839,6 +894,7 @@ class BrowserScreen(Screen):
                     key=lambda r: r.get("name", r.get("id", "")).lower(), reverse=self._sort_reverse
                 )
             elif field == "type":
+                # Sort by raw type value (not formatted with emoji) for consistency
                 self.filtered_resources.sort(
                     key=lambda r: r.get("type", "").lower(), reverse=self._sort_reverse
                 )
